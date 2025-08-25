@@ -1,103 +1,112 @@
-import Image from "next/image";
+// src/app/page.tsx
+// src/app/page.tsx
+'use client'
 
-export default function Home() {
+import Navbar from './components/Navbar'
+import DataTable, { Row } from './components/DataTable'
+import ChatWidget from './components/ChatWidget'
+import { useMemo, useState } from 'react'
+
+export default function HomePage() {
+  const fechaHoy = useMemo(() => {
+    const d = new Date()
+    const dd = String(d.getDate()).padStart(2, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const yyyy = d.getFullYear()
+    return `${dd}/${mm}/${yyyy}`
+  }, [])
+
+  // 🔹 Mock centralizado aquí (agrega tantos como quieras)
+const allData: Row[] = [
+  // Ficha 255001
+  { fecha:'25/03/2025', hora:'6:20 pm', llegada:'rojo',    nombre:'María Torres',      cedula:'356429', genero:'F', correo:'maria.torres@gmail.com',   celular:'3201112233', ficha:'255001' },
+  { fecha:'25/03/2025', hora:'6:00 pm', llegada:'amarillo',nombre:'Juan Peña',         cedula:'245620', genero:'M', correo:'juan.pena@gmail.com',      celular:'3002223344', ficha:'255001' },
+  { fecha:'25/03/2025', hora:'6:15 pm', llegada:'verde',   nombre:'Pedro Ramírez',     cedula:'785412', genero:'M', correo:'pedro.ramirez@gmail.com',  celular:'3009876543', ficha:'255001' },
+  { fecha:'25/03/2025', hora:'6:10 pm', llegada:'verde',   nombre:'Ana Morales',       cedula:'698745', genero:'F', correo:'ana.morales@gmail.com',    celular:'3012233445', ficha:'255001' },
+  { fecha:'25/03/2025', hora:'6:05 pm', llegada:'rojo',    nombre:'Felipe Lozano',     cedula:'785123', genero:'M', correo:'felipe.lozano@gmail.com',  celular:'3023344556', ficha:'255001' },
+
+  // Ficha 255002
+  { fecha:'25/03/2025', hora:'6:25 pm', llegada:'verde',   nombre:'Luisa Ruiz',        cedula:'568154', genero:'F', correo:'luisa.ruiz@gmail.com',     celular:'3013334455', ficha:'255002' },
+  { fecha:'25/03/2025', hora:'6:12 pm', llegada:'amarillo',nombre:'Carolina Méndez',   cedula:'698741', genero:'F', correo:'caro.mendez@gmail.com',    celular:'3046667788', ficha:'255002' },
+  { fecha:'25/03/2025', hora:'6:30 pm', llegada:'rojo',    nombre:'Esteban Suárez',    cedula:'895621', genero:'M', correo:'esteban.suarez@gmail.com', celular:'3057778899', ficha:'255002' },
+  { fecha:'25/03/2025', hora:'6:18 pm', llegada:'verde',   nombre:'Diana Herrera',     cedula:'451236', genero:'F', correo:'diana.herrera@gmail.com',  celular:'3068889900', ficha:'255002' },
+  { fecha:'25/03/2025', hora:'6:35 pm', llegada:'amarillo',nombre:'Andrés Silva',      cedula:'125478', genero:'M', correo:'andres.silva@gmail.com',   celular:'3079990011', ficha:'255002' },
+
+  // Ficha 255003
+  { fecha:'25/03/2025', hora:'6:08 pm', llegada:'rojo',    nombre:'Valentina López',   cedula:'159357', genero:'F', correo:'valentina.lopez@gmail.com', celular:'3080001122', ficha:'255003' },
+  { fecha:'25/03/2025', hora:'6:22 pm', llegada:'verde',   nombre:'Luis Jorge',        cedula:'784512', genero:'M', correo:'luis.jorge@gmail.com',     celular:'3035556677', ficha:'255003' },
+  { fecha:'25/03/2025', hora:'6:14 pm', llegada:'amarillo',nombre:'Camila Vargas',     cedula:'456123', genero:'F', correo:'camila.vargas@gmail.com',  celular:'3102223344', ficha:'255003' },
+  { fecha:'25/03/2025', hora:'6:40 pm', llegada:'verde',   nombre:'Mateo Fernández',   cedula:'963258', genero:'M', correo:'mateo.fernandez@gmail.com', celular:'3113334455', ficha:'255003' },
+  { fecha:'25/03/2025', hora:'6:20 pm', llegada:'rojo',    nombre:'Laura Castillo',    cedula:'357951', genero:'F', correo:'laura.castillo@gmail.com', celular:'3124445566', ficha:'255003' },
+
+  // Ficha 255004
+  { fecha:'25/03/2025', hora:'6:28 pm', llegada:'verde',   nombre:'Sebastián Ríos',    cedula:'753159', genero:'M', correo:'sebastian.rios@gmail.com', celular:'3091112233', ficha:'255004' },
+  { fecha:'25/03/2025', hora:'6:19 pm', llegada:'amarillo',nombre:'Diego Castaño',     cedula:'258963', genero:'M', correo:'diego.castano@gmail.com',  celular:'3135556677', ficha:'255004' },
+  { fecha:'25/03/2025', hora:'6:11 pm', llegada:'rojo',    nombre:'Tatiana Gómez',     cedula:'785496', genero:'F', correo:'tatiana.gomez@gmail.com',  celular:'3141112233', ficha:'255004' },
+  { fecha:'25/03/2025', hora:'6:45 pm', llegada:'verde',   nombre:'David Mendoza',     cedula:'456987', genero:'M', correo:'david.mendoza@gmail.com',  celular:'3152223344', ficha:'255004' },
+  { fecha:'25/03/2025', hora:'6:32 pm', llegada:'amarillo',nombre:'Isabella Martínez', cedula:'741258', genero:'F', correo:'isabella.martinez@gmail.com', celular:'3163334455', ficha:'255004' },
+
+  // Ficha 255005
+  { fecha:'25/03/2025', hora:'6:27 pm', llegada:'rojo',    nombre:'Cristian Roldán',   cedula:'951753', genero:'M', correo:'cristian.roldan@gmail.com', celular:'3174445566', ficha:'255005' },
+  { fecha:'25/03/2025', hora:'6:33 pm', llegada:'verde',   nombre:'Sofía Jiménez',     cedula:'357159', genero:'F', correo:'sofia.jimenez@gmail.com',  celular:'3185556677', ficha:'255005' },
+  { fecha:'25/03/2025', hora:'6:17 pm', llegada:'amarillo',nombre:'Carlos Vargas',     cedula:'852741', genero:'M', correo:'carlos.vargas@gmail.com',  celular:'3196667788', ficha:'255005' },
+  { fecha:'25/03/2025', hora:'6:50 pm', llegada:'verde',   nombre:'Natalia Rodríguez', cedula:'456258', genero:'F', correo:'natalia.rodriguez@gmail.com', celular:'3207778899', ficha:'255005' },
+  { fecha:'25/03/2025', hora:'6:38 pm', llegada:'rojo',    nombre:'Miguel Ángel Soto', cedula:'789456', genero:'M', correo:'miguel.soto@gmail.com',   celular:'3218889900', ficha:'255005' },
+]
+
+
+  const fichas = useMemo(
+    () => Array.from(new Set(allData.map(r => r.ficha))).sort(),
+    [allData]
+  )
+
+  const [selectedFicha, setSelectedFicha] = useState<string>('') // '' = todas
+  const filtered = useMemo(
+    () => (selectedFicha ? allData.filter(r => r.ficha === selectedFicha) : allData),
+    [allData, selectedFicha]
+  )
+
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="min-h-screen bg-white">
+      <Navbar active="escanear" />
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      <section className="mx-auto w-full max-w-5xl px-4 pb-16">
+        {/* Header secundario */}
+        <div className="flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-4">
+            <p className="text-sm sm:text-base text-gray-800">
+              <span className="font-medium">Nombre del instructor:</span>{' '}
+              <span className="inline-block w-56 border-b border-gray-400 align-middle"></span>
+            </p>
+
+            {/* 🔽 Select de ficha */}
+            <label className="flex items-center gap-2 text-sm sm:text-base text-gray-800">
+              <span className="font-medium">Número de la Ficha:</span>
+              <select
+                value={selectedFicha}
+                onChange={(e) => setSelectedFicha(e.target.value)}
+                className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-yellow-500"
+              >
+                <option value="">Todas</option>
+                {fichas.map((f) => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <p className="text-sm sm:text-base text-gray-900">
+            <span className="font-semibold">Fecha: </span>{fechaHoy}
+          </p>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+
+        {/* Tabla */}
+        <div className="rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.08)] overflow-hidden">
+          <DataTable data={filtered} />
+        </div>
+      </section>
+
+      <ChatWidget label="Hola, soy Asistín!" className="fixed right-6 bottom-6" />
+    </main>
+  )
 }
