@@ -1,0 +1,378 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import Navbar from '../components/Navbar'
+import { FiEdit2, FiTrash2, FiX, FiSearch } from 'react-icons/fi'
+import ChatWidget from '../components/ChatWidget' 
+
+type Llegada = 'verde' | 'amarillo' | 'rojo'
+type Row = {
+  id: string
+  fecha: string
+  hora: string
+  llegada: Llegada
+  nombre: string
+  cedula: string
+  genero: 'M' | 'F'
+  correo: string
+  celular: string
+  ficha: string
+}
+
+const MOCK: Row[] = [
+  { id:'1', fecha:'25/03/2025', hora:'6:20 pm', llegada:'rojo',    nombre:'María Torres',      cedula:'356429', genero:'F', correo:'maria.torres@gmail.com',   celular:'3201112233', ficha:'255001' },
+  { id:'2', fecha:'25/03/2025', hora:'6:00 pm', llegada:'amarillo',nombre:'Juan Peña',         cedula:'245620', genero:'M', correo:'juan.pena@gmail.com',      celular:'3002223344', ficha:'255001' },
+  { id:'3', fecha:'25/03/2025', hora:'6:15 pm', llegada:'verde',   nombre:'Luisa Ruiz',        cedula:'568154', genero:'F', correo:'luisa.ruiz@gmail.com',     celular:'3013334455', ficha:'255002' },
+  { id:'4', fecha:'25/03/2025', hora:'6:10 pm', llegada:'verde',   nombre:'Paula Pérez',       cedula:'452781', genero:'F', correo:'paula.perez@gmail.com',    celular:'3024445566', ficha:'255003' },
+  { id:'5', fecha:'25/03/2025', hora:'6:30 pm', llegada:'amarillo',nombre:'Luis Jorge',        cedula:'784512', genero:'M', correo:'luis.jorge@gmail.com',     celular:'3035556677', ficha:'255003' },
+  { id:'6', fecha:'25/03/2025', hora:'6:05 pm', llegada:'rojo',    nombre:'Carolina Méndez',   cedula:'698741', genero:'F', correo:'caro.mendez@gmail.com',    celular:'3046667788', ficha:'255002' },
+  { id:'7', fecha:'25/03/2025', hora:'6:22 pm', llegada:'verde',   nombre:'Sebastián Ríos',    cedula:'753159', genero:'M', correo:'sebastian.rios@gmail.com', celular:'3091112233', ficha:'255004' },
+  { id:'8', fecha:'25/03/2025', hora:'6:14 pm', llegada:'amarillo',nombre:'Camila Vargas',     cedula:'456123', genero:'F', correo:'camila.vargas@gmail.com',  celular:'3102223344', ficha:'255004' },
+  { id:'9', fecha:'25/03/2025', hora:'6:40 pm', llegada:'verde',   nombre:'Mateo Fernández',   cedula:'963258', genero:'M', correo:'mateo.fernandez@gmail.com', celular:'3113334455', ficha:'255003' },
+  { id:'10',fecha:'25/03/2025', hora:'6:20 pm', llegada:'rojo',    nombre:'Laura Castillo',    cedula:'357951', genero:'F', correo:'laura.castillo@gmail.com', celular:'3124445566', ficha:'255003' },
+]
+
+function Dot({ color }: { color: Llegada }) {
+  const map = { verde:'bg-green-500', amarillo:'bg-yellow-400', rojo:'bg-red-500' } as const
+  return <span className={`inline-block h-3.5 w-3.5 rounded-full ${map[color]}`} />
+}
+
+export default function ModificarAprendizPage() {
+  // estado base
+  const [rows, setRows] = useState<Row[]>(MOCK)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [query, setQuery] = useState('')
+  const [ficha, setFicha] = useState('')
+
+  // modal
+  const [editing, setEditing] = useState<Row | null>(null)
+
+  const fichas = useMemo(
+    () => Array.from(new Set(rows.map(r => r.ficha))).sort(),
+    [rows]
+  )
+
+  const filtered = useMemo(() => {
+    let list = rows
+    if (ficha) list = list.filter(r => r.ficha === ficha)
+    if (query.trim()) {
+      const q = query.toLowerCase()
+      list = list.filter(r =>
+        r.nombre.toLowerCase().includes(q) || r.cedula.includes(q)
+      )
+    }
+    return list
+  }, [rows, ficha, query])
+
+  const toggle = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const allChecked = filtered.length > 0 && filtered.every(r => selectedIds.has(r.id))
+  const toggleAll = () => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (allChecked) {
+        filtered.forEach(r => next.delete(r.id))
+      } else {
+        filtered.forEach(r => next.add(r.id))
+      }
+      return next
+    })
+  }
+
+  const onDelete = () => {
+    if (selectedIds.size === 0) return
+    if (!confirm(`¿Eliminar ${selectedIds.size} registro(s)?`)) return
+    setRows(rows.filter(r => !selectedIds.has(r.id)))
+    setSelectedIds(new Set())
+  }
+
+  const openEdit = () => {
+    if (selectedIds.size !== 1) return
+    const id = Array.from(selectedIds)[0]
+    setEditing(rows.find(r => r.id === id) ?? null)
+  }
+
+  const saveEdit = (updated: Row) => {
+    setRows(prev => prev.map(r => (r.id === updated.id ? updated : r)))
+    setEditing(null)
+  }
+
+  // fecha de hoy para header derecho
+  const fechaHoy = useMemo(() => {
+    const d = new Date()
+    const dd = String(d.getDate()).padStart(2, '0')
+    const mm = String(d.getMonth() + 1).padStart(2, '0')
+    const yyyy = d.getFullYear()
+    return `${dd}/${mm}/${yyyy}`
+  }, [])
+
+  return (
+    <main className="min-h-screen bg-white">
+      <Navbar active="modificar" />
+
+      <section className="mx-auto w-full max-w-6xl px-4 pb-20">
+        {/* Controles superiores */}
+        <div className="flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 text-sm sm:text-base text-gray-800">
+              <span className="font-medium">Buscar:</span>
+              <div className="relative">
+                <FiSearch className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="por cédula o nombre..."
+                  className="h-9 w-64 rounded-md border border-gray-300 bg-white pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-yellow-500"
+                />
+              </div>
+            </label>
+
+            <label className="flex items-center gap-2 text-sm sm:text-base text-gray-800">
+              <span className="font-medium">Ficha:</span>
+              <select
+                value={ficha}
+                onChange={(e) => setFicha(e.target.value)}
+                className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-yellow-500"
+              >
+                <option value="">Todas</option>
+                {fichas.map((f) => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <p className="text-sm sm:text-base text-gray-900">
+            <span className="font-semibold">Fecha: </span>{fechaHoy}
+          </p>
+        </div>
+
+        {/* Tabla */}
+        <div className="rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.08)] overflow-hidden">
+          <div className="overflow-x-auto bg-white">
+            <table className="min-w-full text-sm">
+              <thead>
+                <tr className="bg-gray-800 text-white">
+                  <Th className="w-10">
+                    <input
+                      type="checkbox"
+                      checked={allChecked}
+                      onChange={toggleAll}
+                      aria-label="Seleccionar todos"
+                    />
+                  </Th>
+                  <Th>Fecha</Th>
+                  <Th>Hora</Th>
+                  <Th className="text-center">Llegada</Th>
+                  <Th>Nombres y Apellidos</Th>
+                  <Th>Cédula</Th>
+                  <Th>Género</Th>
+                  <Th>Correo</Th>
+                  <Th>Celular</Th>
+                  <Th>Ficha</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((r) => {
+                  const checked = selectedIds.has(r.id)
+                  return (
+                    <tr key={r.id} className={`even:bg-gray-50 ${checked ? 'bg-gray-100' : ''}`}>
+                      <Td className="text-center">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggle(r.id)}
+                          aria-label={`Seleccionar ${r.nombre}`}
+                        />
+                      </Td>
+                      <Td>{r.fecha}</Td>
+                      <Td>{r.hora}</Td>
+                      <Td className="text-center"><Dot color={r.llegada} /></Td>
+                      <Td>{r.nombre}</Td>
+                      <Td>{r.cedula}</Td>
+                      <Td>{r.genero}</Td>
+                      <Td className="truncate max-w-[220px]">{r.correo}</Td>
+                      <Td>{r.celular}</Td>
+                      <Td>{r.ficha}</Td>
+                    </tr>
+                  )
+                })}
+                {filtered.length === 0 && (
+                  <tr>
+                    <td className="px-4 py-6 text-center text-gray-500" colSpan={10}>
+                      No hay resultados para tu búsqueda.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Acciones inferiores */}
+        <div className="mt-6 flex items-center justify-center gap-6">
+          <button
+            onClick={onDelete}
+            disabled={selectedIds.size === 0}
+            className="inline-flex items-center gap-2 rounded-full bg-gray-200 px-5 py-2 text-gray-900 shadow-md disabled:opacity-50"
+            title="Eliminar registro(s)"
+          >
+            <FiTrash2 />
+            Eliminar Registro
+          </button>
+
+          <button
+            onClick={openEdit}
+            disabled={selectedIds.size !== 1}
+            className="inline-flex items-center gap-2 rounded-full bg-gray-200 px-5 py-2 text-gray-900 shadow-md disabled:opacity-50"
+            title="Modificar registro"
+          >
+            <FiEdit2 />
+            Modificar Registro
+          </button>
+        </div>
+      </section>
+
+        <ChatWidget
+        label="Hola, soy Asistín!"
+        className="fixed bottom-6 right-6 z-40"
+      />
+
+      {/* Modal de edición */}
+      {editing && (
+        <EditModal
+          value={editing}
+          onClose={() => setEditing(null)}
+          onSave={saveEdit}
+        />
+      )}
+    </main>
+  )
+}
+
+function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <th className={`px-4 py-3 text-left font-semibold ${className}`}>{children}</th>
+}
+function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <td className={`px-4 py-3 text-gray-800 ${className}`}>{children}</td>
+}
+
+/* ---------- Modal de edición ---------- */
+function EditModal({
+  value,
+  onClose,
+  onSave,
+}: {
+  value: Row
+  onClose: () => void
+  onSave: (v: Row) => void
+}) {
+  const [form, setForm] = useState<Row>(value)
+
+  const set = <K extends keyof Row>(key: K, v: Row[K]) =>
+    setForm(prev => ({ ...prev, [key]: v }))
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+      <div className="w-full max-w-xl rounded-2xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b px-5 py-3">
+          <h3 className="text-lg font-semibold">Modificar aprendiz</h3>
+          <button onClick={onClose} className="p-1 text-gray-600 hover:text-gray-800">
+            <FiX size={20} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
+          <Field label="Nombres y Apellidos">
+            <input value={form.nombre} onChange={e => set('nombre', e.target.value)}
+              className="input" />
+          </Field>
+          <Field label="Cédula">
+            <input value={form.cedula} onChange={e => set('cedula', e.target.value)}
+              className="input" />
+          </Field>
+          <Field label="Género">
+            <select value={form.genero} onChange={e => set('genero', e.target.value as any)} className="input">
+              <option value="M">M</option>
+              <option value="F">F</option>
+            </select>
+          </Field>
+          <Field label="Celular">
+            <input value={form.celular} onChange={e => set('celular', e.target.value)}
+              className="input" />
+          </Field>
+          <Field label="Correo" full>
+            <input value={form.correo} onChange={e => set('correo', e.target.value)}
+              className="input" />
+          </Field>
+          <Field label="Ficha">
+            <input value={form.ficha} onChange={e => set('ficha', e.target.value)}
+              className="input" />
+          </Field>
+          <Field label="Llegada">
+            <div className="flex items-center gap-3">
+              {(['verde','amarillo','rojo'] as Llegada[]).map(opt => (
+                <label key={opt} className="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    checked={form.llegada === opt}
+                    onChange={() => set('llegada', opt)}
+                  />
+                  <span className="flex items-center gap-1">
+                    <Dot color={opt} /> {opt}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </Field>
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-3 border-t px-5 py-3">
+          <button onClick={onClose} className="rounded-md px-4 py-2 text-gray-700 hover:bg-gray-100">
+            Cancelar
+          </button>
+          <button
+            onClick={() => onSave(form)}
+            className="rounded-md bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
+          >
+            Guardar cambios
+          </button>
+        </div>
+      </div>
+
+      {/* estilos inputs */}
+      <style jsx>{`
+        .input {
+          @apply h-10 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:ring-2 focus:ring-blue-400;
+        }
+      `}</style>
+    </div>
+  )
+}
+
+function Field({
+  label,
+  children,
+  full = false,
+}: {
+  label: string
+  children: React.ReactNode
+  full?: boolean
+}) {
+  return (
+    <div className={full ? 'sm:col-span-2' : ''}>
+      <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
+      {children}
+    </div>
+  )
+}

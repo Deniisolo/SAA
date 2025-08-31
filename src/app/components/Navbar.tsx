@@ -12,7 +12,7 @@ export default function Navbar({ active }: { active?: NavKey }) {
     { key: 'crear', label: 'Crear aprendiz', href: '/crear-aprendiz' },
     { key: 'modificar', label: 'Modificar aprendiz', href: '/modificar-aprendiz' },
     { key: 'estadisticas', label: 'Ver estadísticas', href: '/estadisticas' },
-    { key: 'descargar', label: 'Descargar lista', href: '#' }, // luego lo conectas a exportar CSV/PDF
+   { key: 'admin', label: 'Admin', href: '/admin' },
   ]
 
   return (
