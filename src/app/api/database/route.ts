@@ -26,25 +26,59 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, email, password } = body;
+    const { 
+      nombre, 
+      apellido, 
+      correo_electronico, 
+      telefono, 
+      numero_documento, 
+      usemame, 
+      Contrasenia,
+      rol_id,
+      tipo_documento_id,
+      estado_estudiante_id,
+      ficha_id,
+      genero_id,
+      programa_formacion_id,
+      nivel_formacion_id
+    } = body;
 
     // Validar datos requeridos
-    if (!name || !email || !password) {
+    if (!nombre || !apellido || !correo_electronico || !usemame || !Contrasenia) {
       return NextResponse.json({
         message: 'Datos incompletos',
         timestamp: new Date().toISOString(),
         status: 'error',
-        error: 'Se requieren name, email y password'
+        error: 'Se requieren nombre, apellido, correo_electronico, usemame y Contrasenia'
       }, { status: 400 });
     }
 
     // Crear usuario
-    const user = await prisma.user.create({
+    const usuario = await prisma.usuario.create({
       data: {
-        name,
-        email,
-        password, // En producción, hashear la contraseña
-        role: 'USER'
+        nombre,
+        apellido,
+        correo_electronico,
+        telefono: telefono || '',
+        numero_documento: numero_documento || '',
+        usemame,
+        Contrasenia,
+        Rol_id_Rol: rol_id || 1,
+        TipoDocumento_id_Tipo_Documento: tipo_documento_id || 1,
+        EstadoEstudiante_id_estado_estudiante: estado_estudiante_id || 1,
+        Ficha_id_ficha: ficha_id || 1,
+        Genero_id_genero: genero_id || 1,
+        Programa_formacion_idPrograma_formacion: programa_formacion_id || 1,
+        Nivel_de_formacion_Id_Nivel_de_formacioncol: nivel_formacion_id || 'TECNICO'
+      },
+      include: {
+        rol: true,
+        tipo_documento: true,
+        estado_estudiante: true,
+        ficha: true,
+        genero: true,
+        programa_formacion: true,
+        nivel_formacion: true
       }
     });
 
@@ -53,11 +87,17 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       status: 'success',
       data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        createdAt: user.createdAt
+        id: usuario.id_usuario,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        correo_electronico: usuario.correo_electronico,
+        usemame: usuario.usemame,
+        rol: usuario.rol.nombre_rol,
+        tipo_documento: usuario.tipo_documento.nombre_documento,
+        estado_estudiante: usuario.estado_estudiante.descripcion_estado,
+        genero: usuario.genero.descripcion,
+        programa_formacion: usuario.programa_formacion.nombre_programa,
+        nivel_formacion: usuario.nivel_formacion.Id_Nivel_de_formacioncol
       }
     });
   } catch (error) {
@@ -74,7 +114,15 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
-    const { id, name, email } = body;
+    const { 
+      id, 
+      nombre, 
+      apellido, 
+      correo_electronico, 
+      telefono, 
+      numero_documento, 
+      usemame 
+    } = body;
 
     if (!id) {
       return NextResponse.json({
@@ -85,11 +133,23 @@ export async function PUT(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const user = await prisma.user.update({
-      where: { id: parseInt(id) },
+    const usuario = await prisma.usuario.update({
+      where: { id_usuario: parseInt(id) },
       data: {
-        name: name || undefined,
-        email: email || undefined
+        nombre: nombre || undefined,
+        apellido: apellido || undefined,
+        correo_electronico: correo_electronico || undefined,
+        telefono: telefono || undefined,
+        numero_documento: numero_documento || undefined,
+        usemame: usemame || undefined
+      },
+      include: {
+        rol: true,
+        tipo_documento: true,
+        estado_estudiante: true,
+        genero: true,
+        programa_formacion: true,
+        nivel_formacion: true
       }
     });
 
@@ -98,11 +158,17 @@ export async function PUT(request: NextRequest) {
       timestamp: new Date().toISOString(),
       status: 'success',
       data: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        updatedAt: user.updatedAt
+        id: usuario.id_usuario,
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        correo_electronico: usuario.correo_electronico,
+        usemame: usuario.usemame,
+        rol: usuario.rol.nombre_rol,
+        tipo_documento: usuario.tipo_documento.nombre_documento,
+        estado_estudiante: usuario.estado_estudiante.descripcion_estado,
+        genero: usuario.genero.descripcion,
+        programa_formacion: usuario.programa_formacion.nombre_programa,
+        nivel_formacion: usuario.nivel_formacion.Id_Nivel_de_formacioncol
       }
     });
   } catch (error) {
@@ -130,8 +196,8 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    await prisma.user.delete({
-      where: { id: parseInt(id) }
+    await prisma.usuario.delete({
+      where: { id_usuario: parseInt(id) }
     });
 
     return NextResponse.json({

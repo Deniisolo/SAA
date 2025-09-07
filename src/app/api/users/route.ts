@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '10');
     const search = searchParams.get('search') || '';
-    const role = searchParams.get('role') || '';
+    const rol = searchParams.get('rol') || '';
+    const programa = searchParams.get('programa') || '';
 
     // Calcular offset para paginación
     const offset = (page - 1) * limit;
@@ -18,38 +19,79 @@ export async function GET(request: NextRequest) {
     
     if (search) {
       where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } }
+        { nombre: { contains: search, mode: 'insensitive' } },
+        { apellido: { contains: search, mode: 'insensitive' } },
+        { correo_electronico: { contains: search, mode: 'insensitive' } },
+        { numero_documento: { contains: search, mode: 'insensitive' } }
       ];
     }
 
-    if (role) {
-      where.role = role;
+    if (rol) {
+      where.rol = {
+        nombre_rol: { contains: rol, mode: 'insensitive' }
+      };
+    }
+
+    if (programa) {
+      where.programa_formacion = {
+        nombre_programa: { contains: programa, mode: 'insensitive' }
+      };
     }
 
     // Obtener usuarios con paginación
-    const [users, total] = await Promise.all([
-      prisma.user.findMany({
+    const [usuarios, total] = await Promise.all([
+      prisma.usuario.findMany({
         where,
         select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: {
+          id_usuario: true,
+          nombre: true,
+          apellido: true,
+          correo_electronico: true,
+          telefono: true,
+          numero_documento: true,
+          usemame: true,
+          rol: {
             select: {
-              posts: true,
-              comments: true
+              nombre_rol: true
+            }
+          },
+          tipo_documento: {
+            select: {
+              nombre_documento: true
+            }
+          },
+          estado_estudiante: {
+            select: {
+              descripcion_estado: true
+            }
+          },
+          genero: {
+            select: {
+              descripcion: true
+            }
+          },
+          programa_formacion: {
+            select: {
+              nombre_programa: true,
+              nivel_formacion: true
+            }
+          },
+          nivel_formacion: {
+            select: {
+              Id_Nivel_de_formacioncol: true
+            }
+          },
+          ficha: {
+            select: {
+              numero_ficha: true
             }
           }
         },
         skip: offset,
         take: limit,
-        orderBy: { createdAt: 'desc' }
+        orderBy: { id_usuario: 'desc' }
       }),
-      prisma.user.count({ where })
+      prisma.usuario.count({ where })
     ]);
 
     // Calcular información de paginación
@@ -62,7 +104,7 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
       status: 'success',
       data: {
-        users,
+        usuarios,
         pagination: {
           page,
           limit,
@@ -87,9 +129,9 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { users } = body;
+    const { usuarios } = body;
 
-    if (!Array.isArray(users)) {
+    if (!Array.isArray(usuarios)) {
       return NextResponse.json({
         message: 'Formato inválido',
         timestamp: new Date().toISOString(),
@@ -99,12 +141,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Crear usuarios
-    const createdUsers = await prisma.user.createMany({
-      data: users.map((user: any) => ({
-        name: user.name,
-        email: user.email,
-        password: user.password || 'password123',
-        role: user.role || 'USER'
+    const createdUsuarios = await prisma.usuario.createMany({
+      data: usuarios.map((usuario: any) => ({
+        nombre: usuario.nombre,
+        apellido: usuario.apellido,
+        correo_electronico: usuario.correo_electronico,
+        telefono: usuario.telefono || '',
+        numero_documento: usuario.numero_documento || '',
+        usemame: usuario.usemame,
+        Contrasenia: usuario.Contrasenia || 'password123',
+        Rol_id_Rol: usuario.rol_id || 1,
+        TipoDocumento_id_Tipo_Documento: usuario.tipo_documento_id || 1,
+        EstadoEstudiante_id_estado_estudiante: usuario.estado_estudiante_id || 1,
+        Ficha_id_ficha: usuario.ficha_id || 1,
+        Genero_id_genero: usuario.genero_id || 1,
+        Programa_formacion_idPrograma_formacion: usuario.programa_formacion_id || 1,
+        Nivel_de_formacion_Id_Nivel_de_formacioncol: usuario.nivel_formacion_id || 'TECNICO'
       })),
       skipDuplicates: true
     });
@@ -114,8 +166,8 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       status: 'success',
       data: {
-        count: createdUsers.count,
-        message: `${createdUsers.count} usuarios creados`
+        count: createdUsuarios.count,
+        message: `${createdUsuarios.count} usuarios creados`
       }
     });
   } catch (error) {
