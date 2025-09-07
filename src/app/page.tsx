@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '../providers/AuthProvider'
 
 export default function HomePage() {
-  const { user, logout, isAuthenticated, loading } = useAuth()
+  const { user, isAuthenticated, loading } = useAuth()
   const router = useRouter()
   
   // 🔹 Mock centralizado aquí (agrega tantos como quieras)
@@ -90,7 +90,7 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-white">
-      <Navbar active="escanear" />
+      <Navbar active="home" />
 
       <section className="mx-auto w-full max-w-5xl px-4 pb-16">
         {/* Header secundario */}
@@ -126,12 +126,6 @@ export default function HomePage() {
             <p className="text-sm sm:text-base text-gray-900">
               <span className="font-semibold">Fecha: </span>{fechaHoy}
             </p>
-            <button
-              onClick={logout}
-              className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors"
-            >
-              Cerrar Sesión
-            </button>
           </div>
         </div>
 
