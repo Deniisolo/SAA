@@ -31,6 +31,7 @@ export default function CrearAprendizPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
   
+  // TODOS LOS HOOKS AL INICIO
   const [form, setForm] = useState<Form>({
     nombre: '',
     apellido: '',
@@ -44,23 +45,6 @@ export default function CrearAprendizPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [ok, setOk] = useState(false)
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login')
-    }
-  }, [isAuthenticated, authLoading, router])
-
-  if (authLoading) {
-    return <LoadingSpinner message="Verificando autenticación..." />
-  }
-
-  if (!isAuthenticated) {
-    return null
-  }
-
-  const set = <K extends keyof Form>(k: K, v: Form[K]) =>
-    setForm(prev => ({ ...prev, [k]: v }))
 
   const validar = useMemo(
     () => ({
@@ -76,6 +60,25 @@ export default function CrearAprendizPage() {
     }),
     []
   )
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, authLoading, router])
+
+  // FUNCIONES DESPUÉS DE LOS HOOKS
+  const set = <K extends keyof Form>(k: K, v: Form[K]) =>
+    setForm(prev => ({ ...prev, [k]: v }))
+
+  // RETURNS CONDICIONALES AL FINAL
+  if (authLoading) {
+    return <LoadingSpinner message="Verificando autenticación..." />
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

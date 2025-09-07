@@ -102,6 +102,7 @@ model Usuario {
   numero_documento                              String   @db.VarChar(45)
   usemame                                       String   @db.VarChar(45) // username (con typo del diagrama)
   Contrasenia                                   String   @db.VarChar(45) // Contraseña
+  codigo_qr                                     String?  @db.VarChar(255) // Código QR único para identificación
   Rol_id_Rol                                    Int
   TipoDocumento_id_Tipo_Documento               Int
   EstadoEstudiante_id_estado_estudiante         Int

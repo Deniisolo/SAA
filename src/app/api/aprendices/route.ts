@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '../../../lib/database';
+import { generarCodigoQR, generarImagenQR } from '../../../lib/qr-utils';
+import { enviarEmailBienvenida } from '../../../lib/email-utils';
 
 // POST - Crear nuevo aprendiz
 export async function POST(request: NextRequest) {
@@ -88,7 +90,7 @@ export async function POST(request: NextRequest) {
       }, { status: 404 });
     }
 
-    // Crear el nuevo aprendiz
+    // Crear el nuevo aprendiz primero (sin QR)
     const nuevoAprendiz = await prisma.usuario.create({
       data: {
         nombre: nombre.trim(),
@@ -117,21 +119,59 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Generar código QR único para el aprendiz
+    const codigoQR = generarCodigoQR(nuevoAprendiz.id_usuario, nombre.trim(), apellido.trim());
+    
+    // Actualizar el aprendiz con el código QR
+    const aprendizConQR = await prisma.usuario.update({
+      where: { id_usuario: nuevoAprendiz.id_usuario },
+      data: { codigo_qr: codigoQR },
+      include: {
+        rol: true,
+        tipo_documento: true,
+        estado_estudiante: true,
+        genero: true,
+        programa_formacion: true,
+        nivel_formacion: true,
+        ficha: true,
+      }
+    });
+
+    // Generar imagen QR y enviar email (en paralelo para mejor rendimiento)
+    try {
+      const [qrImage] = await Promise.all([
+        generarImagenQR(codigoQR),
+        enviarEmailBienvenida(
+          correo.trim(),
+          nombre.trim(),
+          apellido.trim(),
+          codigoQR,
+          '' // Se generará la imagen en la función
+        )
+      ]);
+      
+      console.log(`Email enviado exitosamente a ${correo} con QR: ${codigoQR}`);
+    } catch (emailError) {
+      console.error('Error enviando email:', emailError);
+      // No fallar la creación del aprendiz si el email falla
+    }
+
     return NextResponse.json({
       message: 'Aprendiz creado exitosamente',
       timestamp: new Date().toISOString(),
       status: 'success',
       data: {
-        id: nuevoAprendiz.id_usuario,
-        nombre: nuevoAprendiz.nombre,
-        apellido: nuevoAprendiz.apellido,
-        correo: nuevoAprendiz.correo_electronico,
-        telefono: nuevoAprendiz.telefono,
-        numero_documento: nuevoAprendiz.numero_documento,
-        usemame: nuevoAprendiz.usemame,
-        ficha: nuevoAprendiz.ficha.numero_ficha,
-        programa: nuevoAprendiz.programa_formacion.nombre_programa,
-        rol: nuevoAprendiz.rol.nombre_rol
+        id: aprendizConQR.id_usuario,
+        nombre: aprendizConQR.nombre,
+        apellido: aprendizConQR.apellido,
+        correo: aprendizConQR.correo_electronico,
+        telefono: aprendizConQR.telefono,
+        numero_documento: aprendizConQR.numero_documento,
+        usemame: aprendizConQR.usemame,
+        ficha: aprendizConQR.ficha.numero_ficha,
+        programa: aprendizConQR.programa_formacion.nombre_programa,
+        rol: aprendizConQR.rol.nombre_rol,
+        codigo_qr: aprendizConQR.codigo_qr
       }
     });
 
