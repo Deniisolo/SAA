@@ -44,29 +44,16 @@ export default function ModificarAprendizPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
   
-  // estado base
-  const [rows, setRows] = useState<Row[]>(MOCK)
+  // estado base - TODOS LOS HOOKS AL INICIO
+  const [rows, setRows] = useState<Row[]>([])
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
+  const [dataLoading, setDataLoading] = useState(true)
+  const [dataError, setDataError] = useState<string | null>(null)
   const [ficha, setFicha] = useState('')
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login')
-    }
-  }, [isAuthenticated, authLoading, router])
-
-  if (authLoading) {
-    return <LoadingSpinner message="Verificando autenticación..." />
-  }
-
-  if (!isAuthenticated) {
-    return null
-  }
-
-  // modal
   const [editing, setEditing] = useState<Row | null>(null)
 
+  // Todos los useMemo y funciones deben estar aquí, antes de cualquier return condicional
   const fichas = useMemo(
     () => Array.from(new Set(rows.map(r => r.ficha))).sort(),
     [rows]
@@ -84,6 +71,9 @@ export default function ModificarAprendizPage() {
     return list
   }, [rows, ficha, query])
 
+  const allChecked = filtered.length > 0 && filtered.every(r => selectedIds.has(r.id))
+  const someChecked = filtered.some(r => selectedIds.has(r.id))
+
   const toggle = (id: string) => {
     setSelectedIds(prev => {
       const next = new Set(prev)
@@ -93,17 +83,20 @@ export default function ModificarAprendizPage() {
     })
   }
 
-  const allChecked = filtered.length > 0 && filtered.every(r => selectedIds.has(r.id))
   const toggleAll = () => {
-    setSelectedIds(prev => {
-      const next = new Set(prev)
-      if (allChecked) {
+    if (allChecked) {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
         filtered.forEach(r => next.delete(r.id))
-      } else {
+        return next
+      })
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev)
         filtered.forEach(r => next.add(r.id))
-      }
-      return next
-    })
+        return next
+      })
+    }
   }
 
   const onDelete = () => {
@@ -132,6 +125,99 @@ export default function ModificarAprendizPage() {
     const yyyy = d.getFullYear()
     return `${dd}/${mm}/${yyyy}`
   }, [])
+
+  // Función para cargar aprendices de la base de datos
+  const loadAprendices = async () => {
+    try {
+      setDataLoading(true)
+      setDataError(null)
+      
+      const response = await fetch('/api/aprendices')
+      const data = await response.json()
+      
+      if (response.ok) {
+        // Convertir datos de la API al formato esperado
+        const aprendicesData: Row[] = data.data.aprendices.map((aprendiz: any, index: number) => ({
+          id: aprendiz.id.toString(),
+          fecha: new Date().toLocaleDateString('es-CO'),
+          hora: new Date().toLocaleTimeString('es-CO', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+          }),
+          llegada: 'verde' as Llegada, // Por defecto verde (puntual)
+          nombre: `${aprendiz.nombre} ${aprendiz.apellido}`,
+          cedula: aprendiz.numero_documento,
+          genero: aprendiz.genero === 'Masculino' ? 'M' as const : 'F' as const,
+          correo: aprendiz.correo,
+          celular: aprendiz.telefono,
+          ficha: aprendiz.ficha
+        }))
+        
+        setRows(aprendicesData)
+      } else {
+        setDataError(data.error || 'Error al cargar los aprendices')
+      }
+    } catch (error) {
+      setDataError('Error de conexión al cargar los aprendices')
+    } finally {
+      setDataLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, authLoading, router])
+
+  useEffect(() => {
+    // Cargar aprendices cuando el usuario esté autenticado
+    if (isAuthenticated && !authLoading) {
+      loadAprendices()
+    }
+  }, [isAuthenticated, authLoading])
+
+  if (authLoading) {
+    return <LoadingSpinner message="Verificando autenticación..." />
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
+
+  // Mostrar loading mientras se cargan los datos
+  if (dataLoading) {
+    return (
+      <main className="min-h-screen bg-white">
+        <Navbar active="modificar" />
+        <LoadingSpinner message="Cargando aprendices..." />
+      </main>
+    )
+  }
+
+  // Mostrar error si hay problemas cargando los datos
+  if (dataError) {
+    return (
+      <main className="min-h-screen bg-white">
+        <Navbar active="modificar" />
+        <div className="mx-auto w-full max-w-5xl px-4 py-16">
+          <div className="text-center">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+              <h2 className="text-lg font-semibold text-red-800 mb-2">Error al cargar datos</h2>
+              <p className="text-red-600 mb-4">{dataError}</p>
+              <button
+                onClick={loadAprendices}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Reintentar
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <main className="min-h-screen bg-white">
@@ -169,9 +255,18 @@ export default function ModificarAprendizPage() {
             </label>
           </div>
 
-          <p className="text-sm sm:text-base text-gray-900">
-            <span className="font-semibold">Fecha: </span>{fechaHoy}
-          </p>
+          <div className="flex items-center gap-4">
+            <p className="text-sm sm:text-base text-gray-900">
+              <span className="font-semibold">Fecha: </span>{fechaHoy}
+            </p>
+            <button
+              onClick={loadAprendices}
+              disabled={dataLoading}
+              className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {dataLoading ? 'Actualizando...' : 'Actualizar'}
+            </button>
+          </div>
         </div>
 
         {/* Tabla */}

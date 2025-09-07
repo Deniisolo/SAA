@@ -25,7 +25,7 @@ type Form = {
   ficha: string
 }
 
-const FICHAS = ['255001', '255002', '255003', '255004', '255005'] as const
+const FICHAS = ['2567844', '2567845', '2567846', '2567847', '2567848'] as const
 
 export default function CrearAprendizPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
@@ -97,22 +97,46 @@ export default function CrearAprendizPage() {
 
     setLoading(true)
     try {
-      // TODO: conectar a tu API o Firebase
-      console.log('Crear aprendiz:', form)
-      setOk(true)
-      setTimeout(() => setOk(false), 2500)
-
-      // reset
-      setForm({
-        nombre: '',
-        apellido: '',
-        tipoDocumento: 'CC',
-        numeroDocumento: '',
-        genero: 'M',
-        correo: '',
-        celular: '',
-        ficha: FICHAS[0],
+      const response = await fetch('/api/aprendices', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: form.nombre,
+          apellido: form.apellido,
+          tipoDocumento: form.tipoDocumento,
+          numeroDocumento: form.numeroDocumento,
+          genero: form.genero,
+          correo: form.correo,
+          celular: form.celular,
+          ficha: form.ficha,
+        }),
       })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setOk(true)
+        setTimeout(() => setOk(false), 3000)
+
+        // Reset form
+        setForm({
+          nombre: '',
+          apellido: '',
+          tipoDocumento: 'CC',
+          numeroDocumento: '',
+          genero: 'M',
+          correo: '',
+          celular: '',
+          ficha: FICHAS[0],
+        })
+      } else {
+        // Mostrar error específico
+        setErrors({ general: data.error || 'Error al crear el aprendiz' })
+      }
+    } catch (error) {
+      setErrors({ general: 'Error de conexión. Intenta nuevamente.' })
     } finally {
       setLoading(false)
     }
@@ -128,6 +152,13 @@ export default function CrearAprendizPage() {
           <h1 className="text-center text-4xl sm:text-5xl font-semibold text-gray-900 mb-10">
             Agregar a Aprendiz
           </h1>
+
+          {/* Error general */}
+          {errors.general && (
+            <div className="mx-auto w-full max-w-5xl mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-800">{errors.general}</p>
+            </div>
+          )}
 
           {/* Card */}
           <form
@@ -237,8 +268,13 @@ export default function CrearAprendizPage() {
       </div>
 
       {ok && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-green-600 text-white px-5 py-2 shadow-lg">
-          Aprendiz creado correctamente
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-green-600 text-white px-6 py-3 shadow-lg">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            <span className="font-medium">¡Aprendiz creado exitosamente!</span>
+          </div>
         </div>
       )}
     </main>
