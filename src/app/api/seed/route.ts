@@ -87,15 +87,16 @@ export async function POST() {
     // Crear usuarios de prueba
     const usuarios = await prisma.usuario.createMany({
       data: [
+        // Usuario Instructor
         {
-          nombre: 'Juan Carlos',
-          apellido: 'Pérez González',
-          correo_electronico: 'juan.perez@example.com',
-          telefono: '3001234567',
-          numero_documento: '12345678',
-          usemame: 'juan.perez',
-          Contrasenia: 'password123',
-          Rol_id_Rol: 3, // Aprendiz
+          nombre: 'Carlos Andrés',
+          apellido: 'García Martínez',
+          correo_electronico: 'carlos.garcia@example.com',
+          telefono: '3005555555',
+          numero_documento: '11223344',
+          usemame: 'instructor',
+          Contrasenia: '123456',
+          Rol_id_Rol: 2, // Instructor
           TipoDocumento_id_Tipo_Documento: 1, // CC
           EstadoEstudiante_id_estado_estudiante: 1, // Activo
           Ficha_id_ficha: 1,
@@ -103,15 +104,16 @@ export async function POST() {
           Programa_formacion_idPrograma_formacion: 1, // Técnico en Sistemas
           Nivel_de_formacion_Id_Nivel_de_formacioncol: 'TÉCNICO'
         },
+        // Usuario Coordinador
         {
-          nombre: 'María Fernanda',
-          apellido: 'Rodríguez López',
-          correo_electronico: 'maria.rodriguez@example.com',
-          telefono: '3009876543',
-          numero_documento: '87654321',
-          usemame: 'maria.rodriguez',
-          Contrasenia: 'password123',
-          Rol_id_Rol: 3, // Aprendiz
+          nombre: 'Ana María',
+          apellido: 'López Rodríguez',
+          correo_electronico: 'ana.lopez@example.com',
+          telefono: '3004444444',
+          numero_documento: '99887766',
+          usemame: 'coordinador',
+          Contrasenia: '123456',
+          Rol_id_Rol: 4, // Coordinador
           TipoDocumento_id_Tipo_Documento: 1, // CC
           EstadoEstudiante_id_estado_estudiante: 1, // Activo
           Ficha_id_ficha: 2,
@@ -119,21 +121,22 @@ export async function POST() {
           Programa_formacion_idPrograma_formacion: 2, // Técnico en Administración
           Nivel_de_formacion_Id_Nivel_de_formacioncol: 'TÉCNICO'
         },
+        // Usuario Aprendiz (para pruebas)
         {
-          nombre: 'Carlos Andrés',
-          apellido: 'García Martínez',
-          correo_electronico: 'carlos.garcia@example.com',
-          telefono: '3005555555',
-          numero_documento: '11223344',
-          usemame: 'carlos.garcia',
-          Contrasenia: 'password123',
-          Rol_id_Rol: 2, // Instructor
+          nombre: 'Juan Carlos',
+          apellido: 'Pérez González',
+          correo_electronico: 'juan.perez@example.com',
+          telefono: '3001234567',
+          numero_documento: '12345678',
+          usemame: 'aprendiz',
+          Contrasenia: '123456',
+          Rol_id_Rol: 3, // Aprendiz
           TipoDocumento_id_Tipo_Documento: 1, // CC
           EstadoEstudiante_id_estado_estudiante: 1, // Activo
-          Ficha_id_ficha: 3,
+          Ficha_id_ficha: 1,
           Genero_id_genero: 1, // Masculino
-          Programa_formacion_idPrograma_formacion: 3, // Tecnólogo en Desarrollo
-          Nivel_de_formacion_Id_Nivel_de_formacioncol: 'TECNÓLOGO'
+          Programa_formacion_idPrograma_formacion: 1, // Técnico en Sistemas
+          Nivel_de_formacion_Id_Nivel_de_formacioncol: 'TÉCNICO'
         }
       ],
       skipDuplicates: true
