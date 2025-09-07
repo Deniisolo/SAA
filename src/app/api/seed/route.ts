@@ -84,14 +84,17 @@ export async function POST() {
       skipDuplicates: true
     });
 
+    // Eliminar usuarios existentes
+    await prisma.usuario.deleteMany({});
+
     // Crear usuarios de prueba
     const usuarios = await prisma.usuario.createMany({
       data: [
         // Usuario Instructor
         {
-          nombre: 'Carlos Andrés',
-          apellido: 'García Martínez',
-          correo_electronico: 'carlos.garcia@example.com',
+          nombre: 'Fabian',
+          apellido: 'Hernandez',
+          correo_electronico: 'fabian.hernandez@example.com',
           telefono: '3005555555',
           numero_documento: '11223344',
           usemame: 'instructor',

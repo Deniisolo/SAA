@@ -5,6 +5,7 @@
 ### 👨‍🏫 Instructor
 - **Usuario**: `instructor`
 - **Contraseña**: `123456`
+- **Nombre**: Fabian Hernandez
 - **Rol**: Instructor
 - **Acceso**: Puede acceder a todas las funcionalidades del sistema
 
