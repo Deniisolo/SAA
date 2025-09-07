@@ -43,22 +43,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Marcar como montado para evitar problemas de hidratación
     setMounted(true);
     
-    // Verificar si hay datos de autenticación en localStorage
-    const storedToken = localStorage.getItem('token');
-    const storedUser = localStorage.getItem('user');
+    // Función para cargar datos de autenticación
+    const loadAuthData = () => {
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
 
-    if (storedToken && storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setToken(storedToken);
-        setUser(userData);
-      } catch (error) {
-        // Si hay error al parsear, limpiar localStorage
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+      if (storedToken && storedUser) {
+        try {
+          const userData = JSON.parse(storedUser);
+          setToken(storedToken);
+          setUser(userData);
+        } catch (error) {
+          // Si hay error al parsear, limpiar localStorage
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+
+    // Cargar datos iniciales
+    loadAuthData();
+
+    // Escuchar cambios en localStorage
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'token' || e.key === 'user') {
+        loadAuthData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   const login = async (usemame: string, contrasenia: string): Promise<boolean> => {
@@ -83,9 +101,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('token', newToken);
         localStorage.setItem('user', JSON.stringify(userData));
         
-        // Actualizar estado
+        // Actualizar estado inmediatamente
         setToken(newToken);
         setUser(userData);
+        setLoading(false);
+        
+        console.log('Login exitoso:', { newToken: !!newToken, userData: !!userData });
         
         return true;
       } else {
@@ -111,6 +132,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const isAuthenticated = !!user && !!token && mounted;
+  
+  // Debug: Log del estado de autenticación
+  useEffect(() => {
+    console.log('AuthProvider Debug:', {
+      user: !!user,
+      token: !!token,
+      mounted,
+      isAuthenticated,
+      loading
+    });
+  }, [user, token, mounted, isAuthenticated, loading]);
 
   const hasRole = (roles: string[]): boolean => {
     if (!user) return false;

@@ -1,7 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
+import LoadingSpinner from '../../components/LoadingSpinner'
+import { useAuth } from '../../providers/AuthProvider'
 import {
   FiUser,
   FiMail,
@@ -25,6 +28,9 @@ type Form = {
 const FICHAS = ['255001', '255002', '255003', '255004', '255005'] as const
 
 export default function CrearAprendizPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
+  
   const [form, setForm] = useState<Form>({
     nombre: '',
     apellido: '',
@@ -38,6 +44,20 @@ export default function CrearAprendizPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [ok, setOk] = useState(false)
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, authLoading, router])
+
+  if (authLoading) {
+    return <LoadingSpinner message="Verificando autenticación..." />
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) =>
     setForm(prev => ({ ...prev, [k]: v }))

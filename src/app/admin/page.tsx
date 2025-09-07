@@ -1,5 +1,9 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import Navbar from '../components/Navbar'
+import LoadingSpinner from '../../components/LoadingSpinner'
+import { useAuth } from '../../providers/AuthProvider'
 import clsx from 'clsx'
 
 /** ---------- Tipos ---------- */
@@ -53,7 +57,24 @@ function Field({ label, children }: {label:string; children:React.ReactNode}) {
 
 /** ---------- Página ---------- */
 export default function AdminPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
+  
   const [tab, setTab] = useState<'perfiles'|'centros'>('perfiles')
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, authLoading, router])
+
+  if (authLoading) {
+    return <LoadingSpinner message="Verificando autenticación..." />
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   // Estado Perfiles
   const [perfiles, setPerfiles] = useState<Perfil[]>(MOCK_PERFILES)
@@ -125,11 +146,14 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold">Panel de Administración</h1>
-        <p className="text-sm text-gray-500">Gestiona perfiles, centros de formación y más.</p>
-      </header>
+    <main className="min-h-screen bg-white">
+      <Navbar active="admin" />
+      
+      <div className="mx-auto max-w-7xl px-4 py-6">
+        <header className="mb-6">
+          <h1 className="text-2xl font-bold">Panel de Administración</h1>
+          <p className="text-sm text-gray-500">Gestiona perfiles, centros de formación y más.</p>
+        </header>
 
       {/* Layout: sidebar + contenido */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[240px,1fr]">
@@ -334,6 +358,7 @@ export default function AdminPage() {
           )}
         </main>
       </div>
-    </div>
+      </div>
+    </main>
   )
 }

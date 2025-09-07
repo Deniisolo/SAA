@@ -4,15 +4,15 @@ import Link from 'next/link'
 import Image from 'next/image'
 import clsx from 'clsx'
 
-type NavKey = 'escanear' | 'crear' | 'modificar' | 'estadisticas' | 'descargar'
+type NavKey = 'escanear' | 'crear' | 'modificar' | 'estadisticas' | 'admin'
 
 export default function Navbar({ active }: { active?: NavKey }) {
   const items: { key: NavKey; label: string; href: string }[] = [
-    { key: 'escanear', label: 'Escanear QR', href: '/qr' },
+    { key: 'escanear', label: 'Escanear QR', href: '/' },
     { key: 'crear', label: 'Crear aprendiz', href: '/crear-aprendiz' },
     { key: 'modificar', label: 'Modificar aprendiz', href: '/modificar-aprendiz' },
     { key: 'estadisticas', label: 'Ver estadísticas', href: '/estadisticas' },
-   { key: 'admin', label: 'Admin', href: '/admin' },
+    { key: 'admin', label: 'Admin', href: '/admin' },
   ]
 
   return (

@@ -1,8 +1,11 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import ChatWidget from '../components/ChatWidget'
+import LoadingSpinner from '../../components/LoadingSpinner'
+import { useAuth } from '../../providers/AuthProvider'
 import StatsChart from '../components/StatsChart'
 import { FiChevronDown } from 'react-icons/fi'
 import * as XLSX from 'xlsx'
@@ -36,10 +39,27 @@ const APRENDICES = [
 ]
 
 export default function EstadisticasPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
+  
   const [vista, setVista] = useState<'aprendiz' | 'aprendices'>('aprendices')
   const [openList, setOpenList] = useState(false)
   const [seleccionado, setSeleccionado] = useState(APRENDICES[0])
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, authLoading, router])
+
+  if (authLoading) {
+    return <LoadingSpinner message="Verificando autenticación..." />
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   // persistencia
   useEffect(() => {

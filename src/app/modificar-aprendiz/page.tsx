@@ -1,7 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
+import LoadingSpinner from '../../components/LoadingSpinner'
+import { useAuth } from '../../providers/AuthProvider'
 import { FiEdit2, FiTrash2, FiX, FiSearch } from 'react-icons/fi'
 import ChatWidget from '../components/ChatWidget' 
 
@@ -38,11 +41,28 @@ function Dot({ color }: { color: Llegada }) {
 }
 
 export default function ModificarAprendizPage() {
+  const { isAuthenticated, loading: authLoading } = useAuth()
+  const router = useRouter()
+  
   // estado base
   const [rows, setRows] = useState<Row[]>(MOCK)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [query, setQuery] = useState('')
   const [ficha, setFicha] = useState('')
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, authLoading, router])
+
+  if (authLoading) {
+    return <LoadingSpinner message="Verificando autenticación..." />
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   // modal
   const [editing, setEditing] = useState<Row | null>(null)
