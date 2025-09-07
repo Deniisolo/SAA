@@ -112,9 +112,49 @@ export default function ModificarAprendizPage() {
     setEditing(rows.find(r => r.id === id) ?? null)
   }
 
-  const saveEdit = (updated: Row) => {
-    setRows(prev => prev.map(r => (r.id === updated.id ? updated : r)))
-    setEditing(null)
+  const saveEdit = async (updated: Row) => {
+    try {
+      // Extraer datos del formulario
+      const [nombre, apellido] = updated.nombre.split(' ')
+      const tipoDocumento = 'CC' // Por defecto, se puede mejorar
+      const genero = updated.genero
+      
+      const response = await fetch(`/api/aprendices/${updated.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          nombre: nombre || '',
+          apellido: apellido || '',
+          tipoDocumento: tipoDocumento,
+          numeroDocumento: updated.cedula,
+          genero: genero,
+          correo: updated.correo,
+          celular: updated.celular,
+          ficha: updated.ficha,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Actualizar la lista local con los datos actualizados
+        setRows(prev => prev.map(r => (r.id === updated.id ? updated : r)))
+        setEditing(null)
+        
+        // Recargar los datos desde la base de datos para asegurar sincronización
+        await loadAprendices()
+        
+        // Mostrar mensaje de éxito (opcional)
+        alert('Aprendiz actualizado exitosamente')
+      } else {
+        // Mostrar error específico
+        alert(data.error || 'Error al actualizar el aprendiz')
+      }
+    } catch (error) {
+      alert('Error de conexión al actualizar el aprendiz')
+    }
   }
 
   // fecha de hoy para header derecho
@@ -390,9 +430,20 @@ function EditModal({
   onSave: (v: Row) => void
 }) {
   const [form, setForm] = useState<Row>(value)
+  const [nombre, setNombre] = useState(value.nombre.split(' ')[0] || '')
+  const [apellido, setApellido] = useState(value.nombre.split(' ').slice(1).join(' ') || '')
+  const [tipoDocumento, setTipoDocumento] = useState('CC')
 
   const set = <K extends keyof Row>(key: K, v: Row[K]) =>
     setForm(prev => ({ ...prev, [key]: v }))
+
+  const handleSave = () => {
+    const updatedForm = {
+      ...form,
+      nombre: `${nombre} ${apellido}`.trim()
+    }
+    onSave(updatedForm)
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -407,11 +458,23 @@ function EditModal({
 
         {/* Body */}
         <div className="grid grid-cols-1 gap-4 px-5 py-4 sm:grid-cols-2">
-          <Field label="Nombres y Apellidos">
-            <input value={form.nombre} onChange={e => set('nombre', e.target.value)}
+          <Field label="Nombre">
+            <input value={nombre} onChange={e => setNombre(e.target.value)}
               className="input" />
           </Field>
-          <Field label="Cédula">
+          <Field label="Apellido">
+            <input value={apellido} onChange={e => setApellido(e.target.value)}
+              className="input" />
+          </Field>
+          <Field label="Tipo de Documento">
+            <select value={tipoDocumento} onChange={e => setTipoDocumento(e.target.value)} className="input">
+              <option value="CC">Cédula de Ciudadanía</option>
+              <option value="TI">Tarjeta de Identidad</option>
+              <option value="CE">Cédula de Extranjería</option>
+              <option value="PAS">Pasaporte</option>
+            </select>
+          </Field>
+          <Field label="Número de Documento">
             <input value={form.cedula} onChange={e => set('cedula', e.target.value)}
               className="input" />
           </Field>
@@ -457,7 +520,7 @@ function EditModal({
             Cancelar
           </button>
           <button
-            onClick={() => onSave(form)}
+            onClick={handleSave}
             className="rounded-md bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700"
           >
             Guardar cambios
