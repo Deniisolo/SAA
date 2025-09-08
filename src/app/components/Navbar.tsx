@@ -5,19 +5,39 @@ import Image from 'next/image'
 import clsx from 'clsx'
 import { useAuth } from '../../providers/AuthProvider'
 
-type NavKey = 'home' | 'escanear' | 'crear' | 'modificar' | 'estadisticas' | 'admin'
+type NavKey = 'home' | 'usuarios' | 'fichas' | 'competencias' | 'asociaciones' | 'clases' | 'asistencia' | 'agregar-competencias'
 
 export default function Navbar({ active }: { active?: NavKey }) {
-  const { user, logout } = useAuth()
+  const { user, logout, hasRole } = useAuth()
   
-  const items: { key: NavKey; label: string; href: string }[] = [
-    { key: 'home', label: 'Home', href: '/' },
-    { key: 'escanear', label: 'Escanear QR', href: '/qr' },
-    { key: 'crear', label: 'Crear aprendiz', href: '/crear-aprendiz' },
-    { key: 'modificar', label: 'Modificar aprendiz', href: '/modificar-aprendiz' },
-    { key: 'estadisticas', label: 'Ver estadísticas', href: '/estadisticas' },
-    { key: 'admin', label: 'Admin', href: '/admin' },
+  // Menú para administradores
+  const adminItems: { key: NavKey; label: string; href: string }[] = [
+    { key: 'home', label: 'Inicio', href: '/' },
+    { key: 'usuarios', label: 'Gestión de Usuarios', href: '/admin/usuarios' },
+    { key: 'fichas', label: 'Gestión de Fichas', href: '/admin/fichas' },
+    { key: 'competencias', label: 'Gestión de Competencias', href: '/admin/competencias' },
+    { key: 'agregar-competencias', label: 'Agregar Competencias Química', href: '/admin/agregar-competencias' },
+    { key: 'asociaciones', label: 'Asociaciones', href: '/admin/asociaciones' },
   ]
+
+  // Menú para instructores
+  const instructorItems: { key: NavKey; label: string; href: string }[] = [
+    { key: 'home', label: 'Inicio', href: '/' },
+    { key: 'clases', label: 'Gestión de Clases', href: '/instructor/clases' },
+    { key: 'asistencia', label: 'Asistencia con QR', href: '/instructor/asistencia' },
+  ]
+
+  // Determinar qué menú mostrar según el rol
+  const getMenuItems = () => {
+    if (hasRole(['admin'])) {
+      return adminItems
+    } else if (hasRole(['instructor'])) {
+      return instructorItems
+    }
+    return [{ key: 'home' as NavKey, label: 'Inicio', href: '/' }]
+  }
+
+  const items = getMenuItems()
 
   return (
     <header className="w-full border-b border-gray-200 bg-white">

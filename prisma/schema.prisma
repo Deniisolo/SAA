@@ -88,8 +88,73 @@ model Ficha {
   // Relaciones
   usuarios                 Usuario[]
   programa_formacion       ProgramaFormacion @relation(fields: [id_programa_formacion], references: [idPrograma_formacion])
+  competencias_ficha       CompetenciaFicha[]
   
   @@map("ficha")
+}
+
+// Competencia
+model Competencia {
+  id_competencia           Int      @id @default(autoincrement())
+  nombre_competencia       String   @db.VarChar(100)
+  descripcion              String?  @db.Text
+  codigo_competencia       String   @db.VarChar(20)
+  
+  // Relaciones
+  competencias_ficha       CompetenciaFicha[]
+  clases                   Clase[]
+  
+  @@map("competencia")
+}
+
+// CompetenciaFicha (tabla intermedia para asociar competencias con fichas)
+model CompetenciaFicha {
+  id_competencia_ficha     Int      @id @default(autoincrement())
+  id_competencia           Int
+  id_ficha                 Int
+  
+  // Relaciones
+  competencia              Competencia @relation(fields: [id_competencia], references: [id_competencia])
+  ficha                    Ficha @relation(fields: [id_ficha], references: [id_ficha])
+  
+  @@unique([id_competencia, id_ficha])
+  @@map("competencia_ficha")
+}
+
+// Clase
+model Clase {
+  id_clase                 Int      @id @default(autoincrement())
+  nombre_clase             String   @db.VarChar(100)
+  descripcion              String?  @db.Text
+  fecha_clase              DateTime
+  hora_inicio              String   @db.VarChar(10)
+  hora_fin                 String   @db.VarChar(10)
+  id_competencia           Int
+  id_instructor            Int
+  
+  // Relaciones
+  competencia              Competencia @relation(fields: [id_competencia], references: [id_competencia])
+  instructor               Usuario @relation("InstructorClases", fields: [id_instructor], references: [id_usuario])
+  asistencias              Asistencia[]
+  
+  @@map("clase")
+}
+
+// Asistencia
+model Asistencia {
+  id_asistencia            Int      @id @default(autoincrement())
+  fecha_asistencia         DateTime @default(now())
+  hora_registro            String?  @db.VarChar(10) // Hora de llegada (HH:MM)
+  id_usuario               Int
+  id_clase                 Int
+  estado_asistencia        String   @db.VarChar(20) // "presente", "ausente", "tardanza"
+  
+  // Relaciones
+  usuario                  Usuario @relation(fields: [id_usuario], references: [id_usuario])
+  clase                    Clase @relation(fields: [id_clase], references: [id_clase])
+  
+  @@unique([id_usuario, id_clase])
+  @@map("asistencia")
 }
 
 // Usuario (tabla principal)
@@ -119,6 +184,8 @@ model Usuario {
   genero                                        Genero   @relation(fields: [Genero_id_genero], references: [id_genero])
   programa_formacion                            ProgramaFormacion @relation(fields: [Programa_formacion_idPrograma_formacion], references: [idPrograma_formacion])
   nivel_formacion                               NivelFormacion @relation(fields: [Nivel_de_formacion_Id_Nivel_de_formacioncol], references: [Id_Nivel_de_formacioncol])
+  clases_instructor                             Clase[]  @relation("InstructorClases")
+  asistencias                                   Asistencia[]
   
   @@map("usuario")
 }

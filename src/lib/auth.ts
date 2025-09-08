@@ -71,10 +71,8 @@ export function requireAuth(requiredRoles?: string[]) {
 
 // Roles disponibles
 export const ROLES = {
-  ADMINISTRADOR: 'Administrador',
-  INSTRUCTOR: 'Instructor',
-  COORDINADOR: 'Coordinador',
-  APRENDIZ: 'Aprendiz'
+  ADMIN: 'admin',
+  INSTRUCTOR: 'instructor'
 } as const;
 
 export type Role = typeof ROLES[keyof typeof ROLES];

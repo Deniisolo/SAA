@@ -1,193 +1,346 @@
 // src/app/page.tsx
 'use client'
 
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import SemáforoAsistencia from '../components/SemáforoAsistencia'
 import Navbar from './components/Navbar'
-import DataTable, { Row } from './components/DataTable'
-import ChatWidget from './components/ChatWidget'
-import LoadingSpinner from '../components/LoadingSpinner'
-import { useMemo, useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { useAuth } from '../providers/AuthProvider'
+import { EstadoAsistencia } from '../lib/asistencia-utils'
+
+interface Competencia {
+  id_competencia: number
+  nombre_competencia: string
+  codigo_competencia: string
+  total_clases: number
+}
+
+interface Asistencia {
+  id_asistencia: number
+  fecha_asistencia: string
+  hora_registro: string | null
+  estado_asistencia: EstadoAsistencia
+  id_usuario: number
+  nombre: string
+  apellido: string
+  numero_documento: string
+  id_clase: number
+  nombre_clase: string
+  fecha_clase: string
+  hora_inicio: string
+  hora_fin: string
+  id_competencia: number
+  nombre_competencia: string
+  codigo_competencia: string
+}
 
 export default function HomePage() {
-  const { user, isAuthenticated, loading } = useAuth()
-  const router = useRouter()
+  const [competencias, setCompetencias] = useState<Competencia[]>([])
+  const [asistencias, setAsistencias] = useState<Asistencia[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   
-  // Estado para los datos de aprendices
-  const [allData, setAllData] = useState<Row[]>([])
-  const [dataLoading, setDataLoading] = useState(true)
-  const [dataError, setDataError] = useState<string | null>(null)
+  // Filtros
+  const [competenciaSeleccionada, setCompetenciaSeleccionada] = useState<string>('')
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<string>('')
 
-  // Todos los hooks deben estar al inicio, antes de cualquier return condicional
-  const fechaHoy = useMemo(() => {
-    const d = new Date()
-    const dd = String(d.getDate()).padStart(2, '0')
-    const mm = String(d.getMonth() + 1).padStart(2, '0')
-    const yyyy = d.getFullYear()
-    return `${dd}/${mm}/${yyyy}`
-  }, [])
-
-  const fichas = useMemo(
-    () => Array.from(new Set(allData.map(r => r.ficha))).sort(),
-    [allData]
-  )
-
-  const [selectedFicha, setSelectedFicha] = useState<string>('') // '' = todas
-  const filtered = useMemo(
-    () => (selectedFicha ? allData.filter(r => r.ficha === selectedFicha) : allData),
-    [allData, selectedFicha]
-  )
-
-  // Función para cargar aprendices de la base de datos
-  const loadAprendices = async () => {
+  // Cargar competencias disponibles
+  const cargarCompetencias = async () => {
     try {
-      setDataLoading(true)
-      setDataError(null)
-      
-      const response = await fetch('/api/aprendices')
+      const response = await fetch('/api/competencias-disponibles')
       const data = await response.json()
       
       if (response.ok) {
-        // Convertir datos de la API al formato esperado por DataTable
-        const aprendicesData: Row[] = data.data.aprendices.map((aprendiz: any) => ({
-          fecha: fechaHoy, // Usar fecha actual
-          hora: new Date().toLocaleTimeString('es-CO', { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            hour12: true 
-          }),
-          llegada: 'verde', // Por defecto verde (puntual)
-          nombre: `${aprendiz.nombre} ${aprendiz.apellido}`,
-          cedula: aprendiz.numero_documento,
-          genero: aprendiz.genero === 'Masculino' ? 'M' : 'F',
-          correo: aprendiz.correo,
-          celular: aprendiz.telefono,
-          ficha: aprendiz.ficha
-        }))
-        
-        setAllData(aprendicesData)
+        setCompetencias(data.data || [])
       } else {
-        setDataError(data.error || 'Error al cargar los aprendices')
+        setError('Error al cargar las competencias')
       }
-    } catch (error) {
-      setDataError('Error de conexión al cargar los aprendices')
+    } catch (err) {
+      setError('Error de conexión al cargar competencias')
+    }
+  }
+
+  // Cargar asistencias con filtros
+  const cargarAsistencias = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      const params = new URLSearchParams()
+      if (competenciaSeleccionada) {
+        params.append('competencia', competenciaSeleccionada)
+      }
+      if (fechaSeleccionada) {
+        params.append('fecha', fechaSeleccionada)
+      }
+
+      const response = await fetch(`/api/asistencias-filtradas?${params.toString()}`)
+      const data = await response.json()
+      
+      if (response.ok) {
+        setAsistencias(data.data || [])
+      } else {
+        setError('Error al cargar las asistencias')
+      }
+    } catch (err) {
+      setError('Error de conexión al cargar asistencias')
     } finally {
-      setDataLoading(false)
+      setLoading(false)
     }
   }
+
+  // Efectos
+  useEffect(() => {
+    cargarCompetencias()
+  }, [])
 
   useEffect(() => {
-    // Si no está autenticado y no está cargando, redirigir al login
-    if (!loading && !isAuthenticated) {
-      router.push('/login')
-    }
-  }, [isAuthenticated, loading, router])
+    cargarAsistencias()
+  }, [competenciaSeleccionada, fechaSeleccionada])
 
-  useEffect(() => {
-    // Cargar aprendices cuando el usuario esté autenticado
-    if (isAuthenticated && !loading) {
-      loadAprendices()
-    }
-  }, [isAuthenticated, loading, fechaHoy])
-
-  // Mostrar loading mientras se verifica la autenticación
-  if (loading) {
-    return <LoadingSpinner message="Verificando autenticación..." />
+  // Estadísticas
+  const estadisticas = {
+    total: asistencias.length,
+    presentes: asistencias.filter(a => a.estado_asistencia === 'presente').length,
+    tardanzas: asistencias.filter(a => a.estado_asistencia === 'tardanza').length,
+    ausentes: asistencias.filter(a => a.estado_asistencia === 'ausente').length
   }
 
-  // Si no está autenticado, no mostrar nada (se redirigirá)
-  if (!isAuthenticated) {
-    return null
-  }
+  const porcentajeAsistencia = estadisticas.total > 0 
+    ? Math.round(((estadisticas.presentes + estadisticas.tardanzas) / estadisticas.total) * 100)
+    : 0
 
-  // Mostrar loading mientras se cargan los datos
-  if (dataLoading) {
-    return (
-      <main className="min-h-screen bg-white">
-        <Navbar active="home" />
-        <LoadingSpinner message="Cargando aprendices..." />
-      </main>
-    )
-  }
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <Navbar active="home" />
 
-  // Mostrar error si hay problemas cargando los datos
-  if (dataError) {
-    return (
-      <main className="min-h-screen bg-white">
-        <Navbar active="home" />
-        <div className="mx-auto w-full max-w-5xl px-4 py-16">
-          <div className="text-center">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-              <h2 className="text-lg font-semibold text-red-800 mb-2">Error al cargar datos</h2>
-              <p className="text-red-600 mb-4">{dataError}</p>
-              <button
-                onClick={loadAprendices}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+      {/* Contenido Principal */}
+      <main className="container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            🚦 Control de Asistencia
+          </h2>
+          <p className="text-gray-600">
+            Visualiza el estado de asistencia de los estudiantes con el sistema de semáforo
+          </p>
+        </div>
+
+        {/* Filtros */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-800 mb-4">Filtros</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Competencia
+              </label>
+              <select
+                value={competenciaSeleccionada}
+                onChange={(e) => setCompetenciaSeleccionada(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                Reintentar
+                <option value="">Todas las competencias</option>
+                {competencias.map((comp) => (
+                  <option key={comp.id_competencia} value={comp.id_competencia}>
+                    {comp.nombre_competencia} ({comp.codigo_competencia})
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Fecha de Clase
+              </label>
+              <input
+                type="date"
+                value={fechaSeleccionada}
+                onChange={(e) => setFechaSeleccionada(e.target.value)}
+                className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+            
+            <div className="flex items-end">
+              <button
+                onClick={cargarAsistencias}
+                disabled={loading}
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Cargando...' : 'Actualizar'}
               </button>
             </div>
           </div>
         </div>
+
+        {/* Estadísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total</p>
+                <p className="text-2xl font-bold text-gray-900">{estadisticas.total}</p>
+              </div>
+              <div className="text-2xl">📊</div>
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Presentes</p>
+                <p className="text-2xl font-bold text-green-600">{estadisticas.presentes}</p>
+              </div>
+              <SemáforoAsistencia estado="presente" tamaño="sm" />
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Tardanzas</p>
+                <p className="text-2xl font-bold text-yellow-600">{estadisticas.tardanzas}</p>
+              </div>
+              <SemáforoAsistencia estado="tardanza" tamaño="sm" />
+            </div>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Ausentes</p>
+                <p className="text-2xl font-bold text-red-600">{estadisticas.ausentes}</p>
+              </div>
+              <SemáforoAsistencia estado="ausente" tamaño="sm" />
+            </div>
+          </div>
+        </div>
+
+        {/* Lista de Asistencias */}
+        <div className="bg-white rounded-lg shadow-md">
+          <div className="p-6 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-800">
+              Lista de Asistencias
+              {porcentajeAsistencia > 0 && (
+                <span className="ml-2 text-sm font-normal text-gray-600">
+                  ({porcentajeAsistencia}% de asistencia)
+                </span>
+              )}
+            </h3>
+          </div>
+          
+          {error && (
+            <div className="p-6">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-red-800">{error}</p>
+                <button
+                  onClick={cargarAsistencias}
+                  className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+                >
+                  Reintentar
+                </button>
+              </div>
+            </div>
+          )}
+          
+          {loading ? (
+            <div className="p-6 text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-4"></div>
+              <p className="text-gray-600">Cargando asistencias...</p>
+            </div>
+          ) : asistencias.length === 0 ? (
+            <div className="p-6 text-center">
+              <p className="text-gray-600">No se encontraron asistencias con los filtros seleccionados</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Estado
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Estudiante
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Documento
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Competencia
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Clase
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Fecha
+                    </th>
+                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                             Hora Clase
+                           </th>
+                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                             Hora Llegada
+                           </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {asistencias.map((asistencia) => (
+                    <tr key={asistencia.id_asistencia} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <SemáforoAsistencia estado={asistencia.estado_asistencia} tamaño="sm" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="flex-shrink-0 h-8 w-8">
+                            <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
+                              <span className="text-sm font-medium text-gray-700">
+                                {asistencia.nombre.charAt(0)}{asistencia.apellido.charAt(0)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="ml-3">
+                            <div className="text-sm font-medium text-gray-900">
+                              {asistencia.nombre} {asistencia.apellido}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {asistencia.numero_documento}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">{asistencia.nombre_competencia}</div>
+                        <div className="text-sm text-gray-500">{asistencia.codigo_competencia}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {asistencia.nombre_clase}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {new Date(asistencia.fecha_clase).toLocaleDateString('es-CO')}
+                      </td>
+                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                             {asistencia.hora_inicio} - {asistencia.hora_fin}
+                           </td>
+                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                             {asistencia.hora_registro ? (
+                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                 asistencia.estado_asistencia === 'presente' 
+                                   ? 'bg-green-100 text-green-800' 
+                                   : asistencia.estado_asistencia === 'tardanza'
+                                   ? 'bg-yellow-100 text-yellow-800'
+                                   : 'bg-red-100 text-red-800'
+                               }`}>
+                                 {asistencia.hora_registro}
+                               </span>
+                             ) : (
+                               <span className="text-red-600 text-xs font-medium">No registrada</span>
+                             )}
+                           </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
       </main>
-    )
-  }
-
-  return (
-    <main className="min-h-screen bg-white">
-      <Navbar active="home" />
-
-      <section className="mx-auto w-full max-w-5xl px-4 pb-16">
-        {/* Header secundario */}
-        <div className="flex flex-col gap-3 py-6 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap items-center gap-4">
-            <p className="text-sm sm:text-base text-gray-800">
-              <span className="font-medium">Nombre del instructor:</span>{' '}
-              <span className="font-semibold text-blue-600">
-                {user?.nombre} {user?.apellido}
-              </span>
-              <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                {user?.rol}
-              </span>
-            </p>
-
-            {/* 🔽 Select de ficha */}
-            <label className="flex items-center gap-2 text-sm sm:text-base text-gray-800">
-              <span className="font-medium">Número de la Ficha:</span>
-              <select
-                value={selectedFicha}
-                onChange={(e) => setSelectedFicha(e.target.value)}
-                className="h-9 rounded-md border border-gray-300 bg-white px-3 text-sm outline-none focus:ring-2 focus:ring-yellow-500"
-              >
-                <option value="">Todas</option>
-                {fichas.map((f) => (
-                  <option key={f} value={f}>{f}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <p className="text-sm sm:text-base text-gray-900">
-              <span className="font-semibold">Fecha: </span>{fechaHoy}
-            </p>
-            <button
-              onClick={loadAprendices}
-              disabled={dataLoading}
-              className="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {dataLoading ? 'Actualizando...' : 'Actualizar'}
-            </button>
-          </div>
-        </div>
-
-        {/* Tabla */}
-        <div className="rounded-lg shadow-[0_8px_24px_rgba(0,0,0,0.08)] overflow-hidden">
-          <DataTable data={filtered} />
-        </div>
-      </section>
-
-      <ChatWidget label="Hola, soy Asistín!" className="fixed right-6 bottom-6" />
-    </main>
+    </div>
   )
 }

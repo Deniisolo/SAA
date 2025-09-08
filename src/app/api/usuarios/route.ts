@@ -1,0 +1,129 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { PrismaClient } from '@/generated/prisma'
+
+const prisma = new PrismaClient()
+
+export async function GET() {
+  try {
+    const usuarios = await prisma.usuario.findMany({
+      include: {
+        rol: true,
+        tipo_documento: true,
+        estado_estudiante: true,
+        ficha: true,
+        genero: true,
+        programa_formacion: true,
+        nivel_formacion: true
+      },
+      orderBy: {
+        nombre: 'asc'
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: usuarios
+    })
+  } catch (error) {
+    console.error('Error al obtener usuarios:', error)
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const {
+      nombre,
+      apellido,
+      correo_electronico,
+      telefono,
+      numero_documento,
+      usemame,
+      Contrasenia,
+      codigo_qr,
+      Rol_id_Rol,
+      TipoDocumento_id_Tipo_Documento,
+      EstadoEstudiante_id_estado_estudiante,
+      Ficha_id_ficha,
+      Genero_id_genero,
+      Programa_formacion_idPrograma_formacion,
+      Nivel_de_formacion_Id_Nivel_de_formacioncol
+    } = body
+
+    // Validar campos requeridos
+    if (!nombre || !apellido || !correo_electronico || !usemame || !Contrasenia || !Rol_id_Rol) {
+      return NextResponse.json(
+        { success: false, error: 'Los campos nombre, apellido, email, username, contraseña y rol son requeridos' },
+        { status: 400 }
+      )
+    }
+
+    // Verificar que el username no exista
+    const usuarioExistente = await prisma.usuario.findFirst({
+      where: { usemame }
+    })
+
+    if (usuarioExistente) {
+      return NextResponse.json(
+        { success: false, error: 'Ya existe un usuario con este username' },
+        { status: 400 }
+      )
+    }
+
+    // Verificar que el email no exista
+    const emailExistente = await prisma.usuario.findFirst({
+      where: { correo_electronico }
+    })
+
+    if (emailExistente) {
+      return NextResponse.json(
+        { success: false, error: 'Ya existe un usuario con este email' },
+        { status: 400 }
+      )
+    }
+
+    const usuario = await prisma.usuario.create({
+      data: {
+        nombre,
+        apellido,
+        correo_electronico,
+        telefono,
+        numero_documento,
+        usemame,
+        Contrasenia,
+        codigo_qr,
+        Rol_id_Rol: parseInt(Rol_id_Rol),
+        TipoDocumento_id_Tipo_Documento: parseInt(TipoDocumento_id_Tipo_Documento),
+        EstadoEstudiante_id_estado_estudiante: parseInt(EstadoEstudiante_id_estado_estudiante),
+        Ficha_id_ficha: parseInt(Ficha_id_ficha),
+        Genero_id_genero: parseInt(Genero_id_genero),
+        Programa_formacion_idPrograma_formacion: parseInt(Programa_formacion_idPrograma_formacion),
+        Nivel_de_formacion_Id_Nivel_de_formacioncol
+      },
+      include: {
+        rol: true,
+        tipo_documento: true,
+        estado_estudiante: true,
+        ficha: true,
+        genero: true,
+        programa_formacion: true,
+        nivel_formacion: true
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: usuario
+    })
+  } catch (error) {
+    console.error('Error al crear usuario:', error)
+    return NextResponse.json(
+      { success: false, error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}

@@ -1,6 +1,12 @@
 // src/app/components/DataTable.tsx
 'use client'
 
+export type Column = {
+  key: string
+  label: string
+  render?: (item: any) => React.ReactNode
+}
+
 export type Row = {
   fecha: string
   hora: string
@@ -17,7 +23,6 @@ const defaultData: Row[] = [
   { fecha:'25/03/2025', hora:'6:20 pm', llegada:'rojo',    nombre:'María Torres',   cedula:'356429', genero:'F', correo:'maria.torres@gmail.com',   celular:'3201112233', ficha:'255001' },
   { fecha:'25/03/2025', hora:'6:00 pm', llegada:'amarillo',nombre:'Juan Peña',      cedula:'245620', genero:'M', correo:'juan.pena@gmail.com',      celular:'3002223344', ficha:'255001' },
   { fecha:'25/03/2025', hora:'6:15 pm', llegada:'verde',   nombre:'Luisa Ruiz',     cedula:'568154', genero:'F', correo:'luisa.ruiz@gmail.com',     celular:'3013334455', ficha:'255002' },
-  // … (puedes dejar más mocks si quieres)
 ]
 
 function Dot({ color }: { color: 'verde'|'amarillo'|'rojo' }) {
@@ -28,10 +33,81 @@ function Dot({ color }: { color: 'verde'|'amarillo'|'rojo' }) {
 function Th({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <th className={`px-4 py-3 text-left font-semibold ${className}`}>{children}</th>
 }
+
 function Td({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return <td className={`px-4 py-3 text-gray-800 ${className}`}>{children}</td>
 }
 
+// Componente genérico para tablas de datos
+export function GenericDataTable({ 
+  data, 
+  columns, 
+  onEdit, 
+  onDelete 
+}: { 
+  data: any[]
+  columns: Column[]
+  onEdit?: (item: any) => void
+  onDelete?: (id: number) => void
+}) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        No hay datos para mostrar
+      </div>
+    )
+  }
+
+  return (
+    <div className="overflow-x-auto bg-white">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="bg-gray-800 text-white">
+            {columns.map((column) => (
+              <Th key={column.key}>{column.label}</Th>
+            ))}
+            {(onEdit || onDelete) && <Th>Acciones</Th>}
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((item, index) => (
+            <tr key={item.id || index} className="even:bg-gray-50">
+              {columns.map((column) => (
+                <Td key={column.key}>
+                  {column.render ? column.render(item) : item[column.key]}
+                </Td>
+              ))}
+              {(onEdit || onDelete) && (
+                <Td>
+                  <div className="flex gap-2">
+                    {onEdit && (
+                      <button
+                        onClick={() => onEdit(item)}
+                        className="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                      >
+                        Editar
+                      </button>
+                    )}
+                    {onDelete && (
+                      <button
+                        onClick={() => onDelete(item.id || item.id_usuario || item.id_ficha || item.id_competencia || item.id_competencia_ficha || item.id_clase)}
+                        className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
+                      >
+                        Eliminar
+                      </button>
+                    )}
+                  </div>
+                </Td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+// Componente original para compatibilidad
 export default function DataTable({ data }: { data?: Row[] }) {
   const rows = data ?? defaultData
   return (

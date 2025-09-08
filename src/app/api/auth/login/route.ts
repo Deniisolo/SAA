@@ -53,14 +53,14 @@ export async function POST(request: NextRequest) {
       }, { status: 401 });
     }
 
-    // Verificar que el usuario sea Instructor o Coordinador
+    // Verificar que el usuario sea Admin o Instructor
     const rolUsuario = usuario.rol.nombre_rol;
-    if (rolUsuario !== ROLES.INSTRUCTOR && rolUsuario !== ROLES.COORDINADOR) {
+    if (rolUsuario !== ROLES.INSTRUCTOR && rolUsuario !== ROLES.ADMIN) {
       return NextResponse.json({
         message: 'Acceso denegado',
         timestamp: new Date().toISOString(),
         status: 'error',
-        error: 'Solo instructores y coordinadores pueden acceder'
+        error: 'Solo administradores e instructores pueden acceder'
       }, { status: 403 });
     }
 
