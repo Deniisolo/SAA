@@ -5,6 +5,10 @@ import { useState, useEffect } from 'react'
 import Navbar from '../../components/Navbar'
 import SemáforoAsistencia, { EstadisticasSemáforo, SemáforoTabla } from '../../../components/SemáforoAsistencia'
 import EscánerQRAsistencia from '../../../components/EscánerQRAsistencia'
+import EscánerQRMejorado from '../../../components/EscánerQRMejorado'
+import EscánerQRSimple from '../../../components/EscánerQRSimple'
+import TestQRScanner from '../../../components/TestQRScanner'
+import TestQRScannerMejorado from '../../../components/TestQRScannerMejorado'
 import { calcularEstadisticasAsistencia, EstadoAsistencia } from '../../../lib/asistencia-utils'
 
 interface Asistencia {
@@ -135,8 +139,8 @@ export default function GestionAsistencia() {
       <Navbar active="asistencia" />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Gestión de Asistencia con Semáforo</h1>
-          <p className="text-gray-600">Control de asistencia con sistema de semáforo automático</p>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">📱 Gestión de Asistencia con QR</h1>
+          <p className="text-gray-600">Escanea los códigos QR de los aprendices para registrar asistencia automáticamente</p>
         </div>
 
         {error && (
@@ -147,44 +151,56 @@ export default function GestionAsistencia() {
 
         {/* Selector de Clase */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Seleccionar Clase</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {clases.map((clase) => (
-              <button
-                key={clase.id_clase}
-                onClick={() => setClaseSeleccionada(clase.id_clase)}
-                className={`p-4 border rounded-lg text-left transition-colors ${
-                  claseSeleccionada === clase.id_clase
-                    ? 'border-blue-500 bg-blue-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <h3 className="font-medium text-gray-900">{clase.nombre_clase}</h3>
-                <p className="text-sm text-gray-600">{clase.competencia.nombre_competencia}</p>
-                <p className="text-sm text-gray-500">
-                  {clase.hora_inicio} - {clase.hora_fin}
-                </p>
-              </button>
-            ))}
-          </div>
+          <h2 className="text-xl font-semibold mb-4">📚 Seleccionar Clase</h2>
+          {clases.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p>No hay clases disponibles</p>
+              <p className="text-sm">Crea una clase primero en la sección "Gestión de Clases"</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {clases.map((clase) => (
+                <button
+                  key={clase.id_clase}
+                  onClick={() => setClaseSeleccionada(clase.id_clase)}
+                  className={`p-4 border rounded-lg text-left transition-colors ${
+                    claseSeleccionada === clase.id_clase
+                      ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <h3 className="font-medium text-gray-900 mb-1">{clase.nombre_clase}</h3>
+                  <p className="text-sm text-gray-600 mb-1">{clase.competencia.nombre_competencia}</p>
+                  <p className="text-sm text-gray-500">
+                    🕐 {clase.hora_inicio} - {clase.hora_fin}
+                  </p>
+                  {claseSeleccionada === clase.id_clase && (
+                    <div className="mt-2 text-xs text-blue-600 font-medium">
+                      ✅ Clase seleccionada
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Información de la Clase Seleccionada */}
         {claseActual && (
           <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold mb-4">Clase Seleccionada</h2>
+            <h2 className="text-xl font-semibold mb-4">📋 Información de la Clase</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Nombre de la Clase</label>
-                <p className="mt-1 text-sm text-gray-900">{claseActual.nombre_clase}</p>
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <label className="block text-sm font-medium text-blue-700">📚 Nombre de la Clase</label>
+                <p className="mt-1 text-sm text-blue-900 font-medium">{claseActual.nombre_clase}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Competencia</label>
-                <p className="mt-1 text-sm text-gray-900">{claseActual.competencia.nombre_competencia}</p>
+              <div className="p-3 bg-green-50 rounded-lg">
+                <label className="block text-sm font-medium text-green-700">🎯 Competencia</label>
+                <p className="mt-1 text-sm text-green-900 font-medium">{claseActual.competencia.nombre_competencia}</p>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Horario</label>
-                <p className="mt-1 text-sm text-gray-900">
+              <div className="p-3 bg-purple-50 rounded-lg">
+                <label className="block text-sm font-medium text-purple-700">🕐 Horario</label>
+                <p className="mt-1 text-sm text-purple-900 font-medium">
                   {claseActual.hora_inicio} - {claseActual.hora_fin}
                 </p>
               </div>
@@ -192,10 +208,15 @@ export default function GestionAsistencia() {
           </div>
         )}
 
-        {/* Escáner QR */}
+        {/* Test de Escáner QR Mejorado */}
+        <div className="mb-6">
+          <TestQRScannerMejorado />
+        </div>
+
+        {/* Escáner QR Simple */}
         {claseSeleccionada && (
           <div className="mb-6">
-            <EscánerQRAsistencia
+            <EscánerQRSimple
               idClase={claseSeleccionada}
               onAsistenciaRegistrada={handleAsistenciaRegistrada}
               onError={handleError}

@@ -13,9 +13,16 @@ export async function GET() {
       ORDER BY c.nombre_competencia ASC
     `
 
+    // Convertir BigInt a números para evitar errores de serialización
+    const competenciasSerializadas = (competencias as any[]).map(competencia => ({
+      ...competencia,
+      clases_count: Number(competencia.clases_count),
+      competencias_ficha_count: Number(competencia.competencias_ficha_count)
+    }))
+
     return NextResponse.json({
       success: true,
-      data: competencias
+      data: competenciasSerializadas
     })
   } catch (error) {
     console.error('Error al obtener competencias:', error)

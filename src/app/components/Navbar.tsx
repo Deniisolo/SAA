@@ -5,7 +5,7 @@ import Image from 'next/image'
 import clsx from 'clsx'
 import { useAuth } from '../../providers/AuthProvider'
 
-type NavKey = 'home' | 'usuarios' | 'fichas' | 'competencias' | 'asociaciones' | 'clases' | 'asistencia' | 'agregar-competencias'
+type NavKey = 'home' | 'usuarios' | 'fichas' | 'competencias' | 'asociaciones' | 'clases' | 'asistencia' | 'agregar-competencias' | 'crear-aprendiz'
 
 export default function Navbar({ active }: { active?: NavKey }) {
   const { user, logout, hasRole } = useAuth()
@@ -18,6 +18,7 @@ export default function Navbar({ active }: { active?: NavKey }) {
     { key: 'competencias', label: 'Gestión de Competencias', href: '/admin/competencias' },
     { key: 'agregar-competencias', label: 'Agregar Competencias Química', href: '/admin/agregar-competencias' },
     { key: 'asociaciones', label: 'Asociaciones', href: '/admin/asociaciones' },
+    { key: 'crear-aprendiz', label: 'Crear Aprendiz', href: '/crear-aprendiz' },
   ]
 
   // Menú para instructores
@@ -25,6 +26,7 @@ export default function Navbar({ active }: { active?: NavKey }) {
     { key: 'home', label: 'Inicio', href: '/' },
     { key: 'clases', label: 'Gestión de Clases', href: '/instructor/clases' },
     { key: 'asistencia', label: 'Asistencia con QR', href: '/instructor/asistencia' },
+    { key: 'crear-aprendiz', label: 'Crear Aprendiz', href: '/crear-aprendiz' },
   ]
 
   // Determinar qué menú mostrar según el rol

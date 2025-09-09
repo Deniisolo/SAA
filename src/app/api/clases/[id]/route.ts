@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PrismaClient } from '@/generated/prisma'
-
-const prisma = new PrismaClient()
+import { prisma } from '../../../../lib/database'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id)
+    const { id: idParam } = await params
+    const id = parseInt(idParam)
     
     if (isNaN(id)) {
       return NextResponse.json(
@@ -57,12 +56,21 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id)
+    const { id: idParam } = await params
+    const id = parseInt(idParam)
     const body = await request.json()
     const { nombre_clase, descripcion, fecha_clase, hora_inicio, hora_fin, id_competencia, id_instructor } = body
+
+    // Validar datos requeridos
+    if (!nombre_clase || !fecha_clase || !hora_inicio || !hora_fin || !id_competencia || !id_instructor) {
+      return NextResponse.json(
+        { success: false, error: 'Todos los campos son requeridos' },
+        { status: 400 }
+      )
+    }
 
     if (isNaN(id)) {
       return NextResponse.json(
@@ -95,7 +103,7 @@ export async function PUT(
       )
     }
 
-    // Verificar que el instructor existe y tiene rol de instructor
+    // Verificar que el instructor existe y tiene rol de instructor o admin
     const instructor = await prisma.usuario.findUnique({
       where: { id_usuario: parseInt(id_instructor) },
       include: { rol: true }
@@ -108,9 +116,9 @@ export async function PUT(
       )
     }
 
-    if (instructor.rol.nombre_rol !== 'instructor') {
+    if (instructor.rol.nombre_rol !== 'instructor' && instructor.rol.nombre_rol !== 'admin') {
       return NextResponse.json(
-        { success: false, error: 'El usuario seleccionado no es un instructor' },
+        { success: false, error: 'El usuario seleccionado no tiene permisos para editar clases' },
         { status: 400 }
       )
     }
@@ -152,10 +160,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id)
+    const { id: idParam } = await params
+    const id = parseInt(idParam)
 
     if (isNaN(id)) {
       return NextResponse.json(
@@ -166,14 +175,7 @@ export async function DELETE(
 
     // Verificar que la clase existe
     const claseExistente = await prisma.clase.findUnique({
-      where: { id_clase: id },
-      include: {
-        _count: {
-          select: {
-            asistencias: true
-          }
-        }
-      }
+      where: { id_clase: id }
     })
 
     if (!claseExistente) {
@@ -184,13 +186,18 @@ export async function DELETE(
     }
 
     // Verificar si tiene asistencias registradas
-    if (claseExistente._count.asistencias > 0) {
+    const asistenciasCount = await prisma.asistencia.count({
+      where: { id_clase: id }
+    })
+
+    if (asistenciasCount > 0) {
       return NextResponse.json(
         { success: false, error: 'No se puede eliminar una clase que tiene asistencias registradas' },
         { status: 400 }
       )
     }
 
+    // Eliminar la clase
     await prisma.clase.delete({
       where: { id_clase: id }
     })

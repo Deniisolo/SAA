@@ -31,6 +31,12 @@ export default function CrearAprendizPage() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
   
+  // Debug: Log del estado de autenticación
+  console.log('CrearAprendizPage - Estado de autenticación:', {
+    isAuthenticated,
+    authLoading
+  })
+  
   // TODOS LOS HOOKS AL INICIO
   const [form, setForm] = useState<Form>({
     nombre: '',
@@ -82,6 +88,8 @@ export default function CrearAprendizPage() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('Formulario enviado:', form) // Debug
+    
     const errs: Record<string, string> = {}
 
     errs.nombre = validar.required(form.nombre)
@@ -96,9 +104,17 @@ export default function CrearAprendizPage() {
       if (!errs[k]) delete errs[k]
     })
     setErrors(errs)
-    if (Object.keys(errs).length) return
+    
+    console.log('Errores de validación:', errs) // Debug
+    
+    if (Object.keys(errs).length) {
+      console.log('Formulario tiene errores, no se envía') // Debug
+      return
+    }
 
     setLoading(true)
+    console.log('Enviando datos al servidor...') // Debug
+    
     try {
       const response = await fetch('/api/aprendices', {
         method: 'POST',
@@ -118,6 +134,7 @@ export default function CrearAprendizPage() {
       })
 
       const data = await response.json()
+      console.log('Respuesta del servidor:', { status: response.status, data }) // Debug
 
       if (response.ok) {
         setOk(true)
@@ -134,11 +151,14 @@ export default function CrearAprendizPage() {
           celular: '',
           ficha: FICHAS[0],
         })
+        setErrors({}) // Limpiar errores
       } else {
         // Mostrar error específico
+        console.error('Error del servidor:', data) // Debug
         setErrors({ general: data.error || 'Error al crear el aprendiz' })
       }
     } catch (error) {
+      console.error('Error de conexión:', error) // Debug
       setErrors({ general: 'Error de conexión. Intenta nuevamente.' })
     } finally {
       setLoading(false)

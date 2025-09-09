@@ -33,16 +33,16 @@ export async function enviarEmailBienvenida(
     const qrImageData = qrImage || await generarImagenQR(qrData);
     
     const mailOptions = {
-      from: `"Sistema SAA" <${process.env.SMTP_USER || 'noreply@saa.com'}>`,
+      from: `"Software de Asistencia para Aprendices" <${process.env.SMTP_USER || 'noreply@saa.com'}>`,
       to: correo,
-      subject: `¡Bienvenido al Sistema SAA, ${nombre}!`,
+      subject: `¡Bienvenido al Software de Asistencia para Aprendices, ${nombre}!`,
       html: `
         <!DOCTYPE html>
         <html>
         <head>
           <meta charset="utf-8">
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>Bienvenido al Sistema SAA</title>
+          <title>Bienvenido al Software de Asistencia para Aprendices</title>
           <style>
             body {
               font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -120,21 +120,22 @@ export async function enviarEmailBienvenida(
         <body>
           <div class="container">
             <div class="header">
-              <h1>🎓 Sistema SAA</h1>
+              <h1>🎓 Software de Asistencia para Aprendices</h1>
               <p>Sistema de Asistencia y Aprendizaje</p>
             </div>
             
             <div class="content">
               <h2>¡Hola ${nombre} ${apellido}!</h2>
               
-              <p>Te damos la bienvenida al <span class="highlight">Sistema SAA</span>. Tu registro ha sido exitoso y ahora formas parte de nuestra comunidad educativa.</p>
+              <p>Te damos la bienvenida al <span class="highlight">Software de Asistencia para Aprendices</span>. Tu registro ha sido exitoso y ahora formas parte de nuestra comunidad educativa.</p>
               
               <div class="qr-section">
                 <h3>🔐 Tu Código QR Personal</h3>
                 <p>Este es tu código QR único que te identificará en el sistema:</p>
-                <img src="${qrImageData}" alt="Código QR de ${nombre}" class="qr-code">
+                <img src="cid:qr-image" alt="Código QR de ${nombre}" class="qr-code">
                 <p><strong>Código:</strong></p>
                 <div class="qr-data">${qrData}</div>
+                <p><em>También encontrarás el código QR como archivo adjunto en este correo.</em></p>
               </div>
               
               <div class="instructions">
@@ -153,7 +154,7 @@ export async function enviarEmailBienvenida(
             </div>
             
             <div class="footer">
-              <p>Este es un mensaje automático del Sistema SAA</p>
+              <p>Este es un mensaje automático del Software de Asistencia para Aprendices</p>
               <p>Por favor, no respondas a este correo</p>
             </div>
           </div>
@@ -164,7 +165,8 @@ export async function enviarEmailBienvenida(
         {
           filename: `qr-${nombre}-${apellido}.png`,
           content: qrImageData.split(',')[1], // Remover el prefijo data:image/png;base64,
-          encoding: 'base64'
+          encoding: 'base64',
+          cid: 'qr-image' // Content-ID para referenciar en el HTML
         }
       ]
     };

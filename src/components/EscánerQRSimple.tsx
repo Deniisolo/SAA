@@ -1,26 +1,25 @@
 'use client'
 
 import React, { useState, useRef, useEffect } from 'react'
-import jsQR from 'jsqr'
 import SemáforoAsistencia from './SemáforoAsistencia'
 import { EstadoAsistencia } from '../lib/asistencia-utils'
 
-interface EscánerQRAsistenciaProps {
+interface EscánerQRSimpleProps {
   idClase: number
   onAsistenciaRegistrada: (data: any) => void
   onError: (error: string) => void
 }
 
-export default function EscánerQRAsistencia({ 
+export default function EscánerQRSimple({ 
   idClase, 
   onAsistenciaRegistrada, 
   onError 
-}: EscánerQRAsistenciaProps) {
+}: EscánerQRSimpleProps) {
   const [isScanning, setIsScanning] = useState(false)
   const [ultimaAsistencia, setUltimaAsistencia] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
+  const [codigoManual, setCodigoManual] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
   const iniciarEscáner = async () => {
@@ -28,10 +27,12 @@ export default function EscánerQRAsistencia({
       setError(null)
       setIsScanning(true)
 
-      // Solicitar acceso a la cámara con mejor configuración
+      console.log('Solicitando acceso a la cámara...')
+      
+      // Solicitar acceso a la cámara
       const stream = await navigator.mediaDevices.getUserMedia({ 
         video: { 
-          facingMode: 'environment', // Usar cámara trasera en móviles
+          facingMode: 'environment',
           width: { ideal: 1280 },
           height: { ideal: 720 }
         } 
@@ -41,19 +42,12 @@ export default function EscánerQRAsistencia({
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream
-        
-        // Esperar a que el video esté listo antes de iniciar la detección
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current) {
-            videoRef.current.play().then(() => {
-              // Iniciar detección de códigos QR después de que el video esté reproduciéndose
-              setTimeout(() => detectarCodigoQR(), 500)
-            })
-          }
-        }
+        await videoRef.current.play()
+        console.log('✅ Cámara iniciada correctamente')
       }
+
     } catch (err) {
-      console.error('Error al acceder a la cámara:', err)
+      console.error('❌ Error al acceder a la cámara:', err)
       setError('Error al acceder a la cámara. Asegúrate de permitir el acceso.')
       setIsScanning(false)
     }
@@ -70,58 +64,8 @@ export default function EscánerQRAsistencia({
     }
   }
 
-  const detectarCodigoQR = () => {
-    if (!isScanning || !videoRef.current || !canvasRef.current) {
-      console.log('Escáner detenido o elementos no disponibles')
-      return
-    }
-
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    const context = canvas.getContext('2d')
-
-    if (!context) {
-      console.log('No se pudo obtener el contexto del canvas')
-      setTimeout(() => detectarCodigoQR(), 100)
-      return
-    }
-
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      console.log('Video no está listo, estado:', video.readyState)
-      setTimeout(() => detectarCodigoQR(), 100)
-      return
-    }
-
-    // Configurar canvas con las dimensiones del video
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-
-    // Dibujar frame actual en el canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-    // Obtener datos de imagen para procesamiento
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
-    
-    // Detectar código QR usando jsQR
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert",
-    })
-
-    if (code) {
-      console.log('🎯 Código QR detectado:', code.data)
-      procesarCodigoQR(code.data)
-      return // Detener el escáner después de detectar un código
-    }
-
-    // Continuar escaneando (reducir frecuencia para mejor rendimiento)
-    setTimeout(() => detectarCodigoQR(), 200)
-  }
-
   const procesarCodigoQR = async (codigoQR: string) => {
     try {
-      // Detener el escáner temporalmente para evitar múltiples lecturas
-      detenerEscáner()
-      
       console.log('Procesando código QR:', codigoQR)
       
       // Validar formato del código QR
@@ -166,9 +110,6 @@ export default function EscánerQRAsistencia({
     }
   }
 
-  // Simulación de entrada manual para testing
-  const [codigoManual, setCodigoManual] = useState('')
-
   const handleCodigoManual = (e: React.FormEvent) => {
     e.preventDefault()
     if (codigoManual.trim()) {
@@ -186,11 +127,11 @@ export default function EscánerQRAsistencia({
   return (
     <div className="bg-white rounded-lg shadow p-6">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">📱 Escáner QR para Asistencia</h3>
+        <h3 className="text-lg font-semibold">📱 Escáner QR Simple</h3>
         <div className="flex items-center gap-2">
           <div className={`w-3 h-3 rounded-full ${isScanning ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
           <span className="text-sm text-gray-600">
-            {isScanning ? 'Escaneando...' : 'Detenido'}
+            {isScanning ? 'Cámara activa' : 'Detenido'}
           </span>
         </div>
       </div>
@@ -203,7 +144,7 @@ export default function EscánerQRAsistencia({
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
           >
             <span>📷</span>
-            Iniciar Escáner QR
+            Activar Cámara
           </button>
         ) : (
           <button
@@ -211,7 +152,7 @@ export default function EscánerQRAsistencia({
             className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
           >
             <span>⏹️</span>
-            Detener Escáner
+            Desactivar Cámara
           </button>
         )}
       </div>
@@ -225,6 +166,7 @@ export default function EscánerQRAsistencia({
               className="w-full rounded-lg border-2 border-blue-300"
               playsInline
               muted
+              autoPlay
             />
             {/* Overlay con marco para el QR */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
@@ -236,17 +178,13 @@ export default function EscánerQRAsistencia({
               </div>
             </div>
           </div>
-          <canvas
-            ref={canvasRef}
-            className="hidden"
-          />
           <div className="text-center mt-2">
             <p className="text-sm text-gray-600 mb-2">
               Apunta la cámara al código QR del aprendiz
             </p>
             <div className="flex items-center justify-center gap-2">
               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-green-600 font-medium">Escaneando...</span>
+              <span className="text-xs text-green-600 font-medium">Cámara activa</span>
             </div>
           </div>
         </div>
@@ -271,7 +209,7 @@ export default function EscánerQRAsistencia({
           </button>
         </form>
         <p className="text-xs text-gray-500 mt-1">
-          Usa esta opción si la cámara no funciona o para pruebas rápidas
+          Usa esta opción para registrar asistencia manualmente
         </p>
         
         {/* Botón de prueba con código QR de ejemplo */}
@@ -279,7 +217,6 @@ export default function EscánerQRAsistencia({
           <button
             type="button"
             onClick={() => {
-              // Código QR de ejemplo del último aprendiz creado
               const codigoEjemplo = "SAA-24-JOHANA-HEREDIA-1757379010862-a9422c966f9bac74"
               setCodigoManual(codigoEjemplo)
             }}
@@ -300,7 +237,7 @@ export default function EscánerQRAsistencia({
       {/* Última asistencia registrada */}
       {ultimaAsistencia && (
         <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h4 className="font-semibold text-green-800 mb-2">Última Asistencia Registrada</h4>
+          <h4 className="font-semibold text-green-800 mb-2">✅ Última Asistencia Registrada</h4>
           <div className="space-y-2">
             <div className="flex justify-between">
               <span className="text-green-700">Estudiante:</span>
