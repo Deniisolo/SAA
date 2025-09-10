@@ -1,4 +1,10 @@
+# SAA - Sistema de Asistencia Académica
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## 🚀 Deploy Status
+- Última actualización: 2024-12-19
+- Commit: 2f87679
 
 ## Getting Started
 
