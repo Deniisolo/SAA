@@ -23,10 +23,10 @@ export async function GET() {
 
     // Obtener conteo de asistencias por separado para evitar problemas con BigInt
     const clasesConAsistencias = await Promise.all(
-      clases.map(async (clase: any) => {
+      (clases as any[]).map(async (clase: any) => {
         const asistenciasCount = await prisma.$queryRaw`
           SELECT COUNT(*) as count FROM asistencia WHERE id_clase = ${clase.id_clase}
-        `
+        ` as any[]
         return {
           ...clase,
           _count: {

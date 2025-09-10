@@ -4,7 +4,12 @@ import { useState } from 'react'
 import Image from 'next/image'
 import { FiSend } from 'react-icons/fi'
 
-export default function ChatWidget() {
+interface ChatWidgetProps {
+  label?: string
+  className?: string
+}
+
+export default function ChatWidget({ label, className }: ChatWidgetProps) {
   const [open, setOpen] = useState(false)
   const [messages, setMessages] = useState([
     { from: 'asistin', text: '¡Hola! Soy Asistín, tu asistente virtual del SAA.\n\nPuedo mostrarte:\n✔️ Estadísticas de asistencia\n✔️ Quiénes llegaron tarde\n✔️ Quiénes no asistieron\n📊 Reportes listos para descargar\n\n✍️ Escríbeme tu consulta y te daré la información en segundos.' }
@@ -19,7 +24,7 @@ export default function ChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className={className || "fixed bottom-6 right-6 z-50"}>
       {!open ? (
         // Botón flotante
         <div className="relative inline-flex items-center">
@@ -28,7 +33,7 @@ export default function ChatWidget() {
             className="rounded-full bg-[#2F7CF7] pl-5 pr-14 py-2 text-white font-semibold shadow-lg 
                        hover:brightness-105 transition select-none whitespace-nowrap"
           >
-            Hola, soy Asistín!
+{label || "Hola, soy Asistín!"}
           </button>
           <span
             aria-hidden

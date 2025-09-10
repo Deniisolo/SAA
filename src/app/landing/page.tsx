@@ -1,11 +1,11 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '../../providers/AuthProvider'
 import LoadingSpinner from '../../components/LoadingSpinner'
 
-export default function LandingPage() {
+function LandingPageContent() {
   const { isAuthenticated, loading } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -35,4 +35,12 @@ export default function LandingPage() {
 
   // Mostrar loading mientras se verifica la autenticación
   return <LoadingSpinner message="Redirigiendo..." />
+}
+
+export default function LandingPage() {
+  return (
+    <Suspense fallback={<LoadingSpinner message="Cargando..." />}>
+      <LandingPageContent />
+    </Suspense>
+  )
 }

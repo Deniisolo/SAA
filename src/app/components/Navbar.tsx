@@ -5,7 +5,7 @@ import Image from 'next/image'
 import clsx from 'clsx'
 import { useAuth } from '../../providers/AuthProvider'
 
-type NavKey = 'home' | 'usuarios' | 'fichas' | 'competencias' | 'asociaciones' | 'clases' | 'asistencia' | 'agregar-competencias' | 'crear-aprendiz'
+type NavKey = 'home' | 'usuarios' | 'fichas' | 'competencias' | 'asociaciones' | 'clases' | 'asistencia' | 'agregar-competencias' | 'crear-aprendiz' | 'admin' | 'crear' | 'estadisticas' | 'modificar' | 'escanear'
 
 export default function Navbar({ active }: { active?: NavKey }) {
   const { user, logout, hasRole } = useAuth()
