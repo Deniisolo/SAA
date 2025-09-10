@@ -14,7 +14,7 @@ export default function TestQRScannerMejorado() {
     try {
       setError(null)
       setIsScanning(true)
-      setDetectedCode(null)
+      setDetectedCode(null
 
       // Esperar un poco para asegurar que el video esté renderizado
       await new Promise(resolve => setTimeout(resolve, 200))
