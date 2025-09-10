@@ -1,4 +1,4 @@
-import { PrismaClient } from '../generated/prisma';
+import { PrismaClient } from '@prisma/client';
 
 // Configuración global para Prisma Client
 const globalForPrisma = globalThis as unknown as {
