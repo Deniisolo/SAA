@@ -7,22 +7,26 @@
 - Cuenta en [Vercel](https://vercel.com) (gratuita)
 - Cuenta en [PlanetScale](https://planetscale.com) (gratuita)
 
-### 🗄️ Paso 1: Configurar Base de Datos (PlanetScale)
+### 🗄️ Paso 1: Configurar Base de Datos (Railway)
 
-1. **Crear cuenta en PlanetScale:**
-   - Ve a [https://planetscale.com](https://planetscale.com)
+1. **Crear cuenta en Railway:**
+   - Ve a [https://railway.app](https://railway.app)
    - Regístrate con GitHub
-   - Crea una nueva base de datos gratuita
+   - Crea un nuevo proyecto
 
-2. **Obtener credenciales:**
-   - En el dashboard, ve a tu base de datos
-   - Haz clic en "Connect" → "Connect with Prisma"
-   - Copia la cadena de conexión
+2. **Crear base de datos MySQL:**
+   - Haz clic en "New" → "Database" → "MySQL"
+   - Espera a que se complete la configuración (2-3 minutos)
 
-3. **Configurar base de datos:**
+3. **Obtener credenciales:**
+   - Haz clic en tu base de datos MySQL
+   - Ve a la pestaña "Connect"
+   - Copia la "Connection URL"
+
+4. **Configurar base de datos:**
    ```bash
-   # Usar la cadena de conexión de PlanetScale
-   DATABASE_URL="mysql://username:password@host:port/database_name"
+   # Usar la cadena de conexión de Railway
+   DATABASE_URL="mysql://root:password@containers-us-west-xxx.railway.app:xxxx/railway"
    ```
 
 ### 🌐 Paso 2: Desplegar en Vercel
@@ -40,7 +44,7 @@
    - Importa el repositorio SAA
 
 3. **Configurar variables de entorno en Vercel:**
-   - `DATABASE_URL`: Cadena de conexión de PlanetScale
+   - `DATABASE_URL`: Cadena de conexión de Railway
    - `JWT_SECRET`: Clave secreta para JWT (genera una segura)
    - `NEXTAUTH_URL`: URL de tu aplicación (se llenará automáticamente)
    - `NEXTAUTH_SECRET`: Secreto para NextAuth
@@ -54,7 +58,7 @@
 
 2. **Configurar datos iniciales:**
    ```bash
-   node setup-production.js
+   node setup-railway.js
    ```
 
 ### 📱 Paso 4: Verificar Despliegue
@@ -105,14 +109,14 @@ npx prisma generate
 - 1000 builds/mes
 - Dominio personalizado
 
-**PlanetScale:**
-- 1 base de datos
-- 1GB almacenamiento
-- 1 billón de filas leídas/mes
+**Railway:**
+- $5 de crédito gratuito/mes
+- MySQL/PostgreSQL
+- Suficiente para desarrollo y pruebas
 
 ### 🎉 ¡Listo!
 
 Tu aplicación SAA estará disponible en:
 - **Frontend:** `https://tu-app.vercel.app`
-- **Base de datos:** PlanetScale (gratuita)
+- **Base de datos:** Railway (gratuita)
 - **Monitoreo:** Dashboard de Vercel
