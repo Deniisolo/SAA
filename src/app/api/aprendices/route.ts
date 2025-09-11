@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
 
     // Generar imagen QR y enviar email (en paralelo para mejor rendimiento)
     try {
-      const [qrImage] = await Promise.all([
+      await Promise.all([
         generarImagenQR(codigoQR),
         enviarEmailBienvenida(
           correo.trim(),

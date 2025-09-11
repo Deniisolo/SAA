@@ -17,7 +17,7 @@ import { NextRequest, NextResponse } from 'next/server';
 //   '/modificar-aprendiz'
 // ];
 
-export function middleware(request: NextRequest) {
+export function middleware() {
   // const { pathname } = request.nextUrl;
 
   // Temporalmente deshabilitar el middleware para rutas protegidas

@@ -76,6 +76,17 @@ export default function EstadisticasPage() {
     }
   }, [isAuthenticated, authLoading, router])
 
+  // cerrar dropdown al click fuera
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (openList && dropRef.current && !dropRef.current.contains(e.target as Node)) {
+        setOpenList(false)
+      }
+    }
+    window.addEventListener('mousedown', onClick)
+    return () => window.removeEventListener('mousedown', onClick)
+  }, [openList])
+
   // datos agregados
   const serieGeneral: Serie[] = useMemo(
     () => [
@@ -170,16 +181,6 @@ export default function EstadisticasPage() {
     doc.save(`estadisticas_${vista === 'aprendiz' ? 'aprendiz' : 'general'}.pdf`)
   }
 
-  // cerrar dropdown al click fuera
-  useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (openList && dropRef.current && !dropRef.current.contains(e.target as Node)) {
-        setOpenList(false)
-      }
-    }
-    window.addEventListener('mousedown', onClick)
-    return () => window.removeEventListener('mousedown', onClick)
-  }, [openList])
 
   return (
     <main className="min-h-screen bg-white">

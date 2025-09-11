@@ -22,18 +22,6 @@ type Row = {
   ficha: string
 }
 
-const MOCK: Row[] = [
-  { id:'1', fecha:'25/03/2025', hora:'6:20 pm', llegada:'rojo',    nombre:'María Torres',      cedula:'356429', genero:'F', correo:'maria.torres@gmail.com',   celular:'3201112233', ficha:'255001' },
-  { id:'2', fecha:'25/03/2025', hora:'6:00 pm', llegada:'amarillo',nombre:'Juan Peña',         cedula:'245620', genero:'M', correo:'juan.pena@gmail.com',      celular:'3002223344', ficha:'255001' },
-  { id:'3', fecha:'25/03/2025', hora:'6:15 pm', llegada:'verde',   nombre:'Luisa Ruiz',        cedula:'568154', genero:'F', correo:'luisa.ruiz@gmail.com',     celular:'3013334455', ficha:'255002' },
-  { id:'4', fecha:'25/03/2025', hora:'6:10 pm', llegada:'verde',   nombre:'Paula Pérez',       cedula:'452781', genero:'F', correo:'paula.perez@gmail.com',    celular:'3024445566', ficha:'255003' },
-  { id:'5', fecha:'25/03/2025', hora:'6:30 pm', llegada:'amarillo',nombre:'Luis Jorge',        cedula:'784512', genero:'M', correo:'luis.jorge@gmail.com',     celular:'3035556677', ficha:'255003' },
-  { id:'6', fecha:'25/03/2025', hora:'6:05 pm', llegada:'rojo',    nombre:'Carolina Méndez',   cedula:'698741', genero:'F', correo:'caro.mendez@gmail.com',    celular:'3046667788', ficha:'255002' },
-  { id:'7', fecha:'25/03/2025', hora:'6:22 pm', llegada:'verde',   nombre:'Sebastián Ríos',    cedula:'753159', genero:'M', correo:'sebastian.rios@gmail.com', celular:'3091112233', ficha:'255004' },
-  { id:'8', fecha:'25/03/2025', hora:'6:14 pm', llegada:'amarillo',nombre:'Camila Vargas',     cedula:'456123', genero:'F', correo:'camila.vargas@gmail.com',  celular:'3102223344', ficha:'255004' },
-  { id:'9', fecha:'25/03/2025', hora:'6:40 pm', llegada:'verde',   nombre:'Mateo Fernández',   cedula:'963258', genero:'M', correo:'mateo.fernandez@gmail.com', celular:'3113334455', ficha:'255003' },
-  { id:'10',fecha:'25/03/2025', hora:'6:20 pm', llegada:'rojo',    nombre:'Laura Castillo',    cedula:'357951', genero:'F', correo:'laura.castillo@gmail.com', celular:'3124445566', ficha:'255003' },
-]
 
 function Dot({ color }: { color: Llegada }) {
   const map = { verde:'bg-green-500', amarillo:'bg-yellow-400', rojo:'bg-red-500' } as const
@@ -72,7 +60,6 @@ export default function ModificarAprendizPage() {
   }, [rows, ficha, query])
 
   const allChecked = filtered.length > 0 && filtered.every(r => selectedIds.has(r.id))
-  const someChecked = filtered.some(r => selectedIds.has(r.id))
 
   const toggle = (id: string) => {
     setSelectedIds(prev => {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '../../../lib/database'
-import { determinarEstadoAsistencia, validarFormatoHora } from '../../../lib/asistencia-utils'
+import { determinarEstadoAsistencia } from '../../../lib/asistencia-utils'
 
 export async function GET() {
   try {

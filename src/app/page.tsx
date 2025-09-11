@@ -95,7 +95,7 @@ export default function HomePage() {
 
   useEffect(() => {
     cargarAsistencias()
-  }, [competenciaSeleccionada, fechaSeleccionada])
+  }, [competenciaSeleccionada, fechaSeleccionada, cargarAsistencias])
 
   // Estadísticas
   const estadisticas = {
