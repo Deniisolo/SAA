@@ -14,7 +14,12 @@ export async function GET() {
     `
 
     // Convertir BigInt a números para evitar errores de serialización
-    const competenciasSerializadas = (competencias as any[]).map(competencia => ({
+    const competenciasSerializadas = (competencias as Array<{
+      id_competencia: number
+      nombre_competencia: string
+      clases_count: bigint
+      competencias_ficha_count: bigint
+    }>).map(competencia => ({
       ...competencia,
       clases_count: Number(competencia.clases_count),
       competencias_ficha_count: Number(competencia.competencias_ficha_count)

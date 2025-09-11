@@ -5,7 +5,7 @@ import { useAuth } from '../../../providers/AuthProvider'
 import Navbar from '../../components/Navbar'
 
 export default function AgregarCompetencias() {
-  const { user, hasRole } = useAuth()
+  const { hasRole } = useAuth()
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -78,8 +78,8 @@ export default function AgregarCompetencias() {
 
       const results = await Promise.all(promises)
       setMessage(`✅ Se agregaron ${results.length} competencias de química correctamente`)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error desconocido')
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Error desconocido')
     } finally {
       setLoading(false)
     }

@@ -15,7 +15,7 @@ interface Competencia {
 }
 
 export default function GestionCompetencias() {
-  const { user, hasRole } = useAuth()
+  const { hasRole } = useAuth()
   const [competencias, setCompetencias] = useState<Competencia[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -30,7 +30,7 @@ export default function GestionCompetencias() {
       } else {
         setError('Error al cargar las competencias')
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión')
     } finally {
       setLoading(false)
@@ -63,7 +63,7 @@ export default function GestionCompetencias() {
     console.log('Crear competencia')
   }
 
-  const handleEdit = (competencia: Competencia) => {
+  const handleEdit = (competencia: Record<string, unknown>) => {
     // Implementar modal o navegación para editar competencia
     console.log('Editar competencia:', competencia)
   }
@@ -79,7 +79,7 @@ export default function GestionCompetencias() {
         } else {
           setError('Error al eliminar la competencia')
         }
-      } catch (err) {
+      } catch {
         setError('Error de conexión')
       }
     }
@@ -89,8 +89,8 @@ export default function GestionCompetencias() {
     { key: 'codigo_competencia', label: 'Código' },
     { key: 'nombre_competencia', label: 'Nombre' },
     { key: 'descripcion', label: 'Descripción' },
-    { key: 'clases_count', label: 'Clases', render: (competencia: Competencia) => competencia.clases_count },
-    { key: 'fichas_count', label: 'Fichas', render: (competencia: Competencia) => competencia.competencias_ficha_count }
+    { key: 'clases_count', label: 'Clases', render: (competencia) => (competencia as unknown as Competencia).clases_count },
+    { key: 'fichas_count', label: 'Fichas', render: (competencia) => (competencia as unknown as Competencia).competencias_ficha_count }
   ]
 
   if (loading) {
@@ -133,7 +133,7 @@ export default function GestionCompetencias() {
           </div>
           
           <GenericDataTable
-            data={competencias}
+            data={competencias as unknown as Record<string, unknown>[]}
             columns={columns}
             onEdit={handleEdit}
             onDelete={handleDelete}

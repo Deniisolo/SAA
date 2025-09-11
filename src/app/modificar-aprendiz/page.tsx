@@ -152,7 +152,7 @@ export default function ModificarAprendizPage() {
         // Mostrar error específico
         alert(data.error || 'Error al actualizar el aprendiz')
       }
-    } catch (error) {
+    } catch {
       alert('Error de conexión al actualizar el aprendiz')
     }
   }
@@ -177,7 +177,19 @@ export default function ModificarAprendizPage() {
       
       if (response.ok) {
         // Convertir datos de la API al formato esperado
-        const aprendicesData: Row[] = data.data.aprendices.map((aprendiz: any, index: number) => ({
+        const aprendicesData: Row[] = data.data.aprendices.map((aprendiz: {
+          id: number
+          nombre: string
+          apellido: string
+          documento: string
+          correo_electronico: string
+          telefono: string
+          genero: string
+          correo: string
+          ficha?: {
+            numero_ficha: string
+          }
+        }) => ({
           id: aprendiz.id.toString(),
           fecha: new Date().toLocaleDateString('es-CO'),
           hora: new Date().toLocaleTimeString('es-CO', { 
@@ -187,7 +199,7 @@ export default function ModificarAprendizPage() {
           }),
           llegada: 'verde' as Llegada, // Por defecto verde (puntual)
           nombre: `${aprendiz.nombre} ${aprendiz.apellido}`,
-          cedula: aprendiz.numero_documento,
+          cedula: aprendiz.documento,
           genero: aprendiz.genero === 'Masculino' ? 'M' as const : 'F' as const,
           correo: aprendiz.correo,
           celular: aprendiz.telefono,
@@ -198,7 +210,7 @@ export default function ModificarAprendizPage() {
       } else {
         setDataError(data.error || 'Error al cargar los aprendices')
       }
-    } catch (error) {
+    } catch {
       setDataError('Error de conexión al cargar los aprendices')
     } finally {
       setDataLoading(false)
@@ -479,7 +491,7 @@ function EditModal({
               className="input" />
           </Field>
           <Field label="Género">
-            <select value={form.genero} onChange={e => set('genero', e.target.value as any)} className="input">
+            <select value={form.genero} onChange={e => set('genero', e.target.value as 'M' | 'F')} className="input">
               <option value="M">M</option>
               <option value="F">F</option>
             </select>

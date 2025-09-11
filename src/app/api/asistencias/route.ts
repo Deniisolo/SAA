@@ -72,14 +72,22 @@ export async function POST(request: NextRequest) {
       SELECT * FROM clase WHERE id_clase = ${parseInt(id_clase)}
     `
 
-    if (!clase || (clase as any[]).length === 0) {
+    if (!clase || (clase as Array<unknown>).length === 0) {
       return NextResponse.json(
         { success: false, error: 'Clase no encontrada' },
         { status: 404 }
       )
     }
 
-    const claseData = (clase as any[])[0]
+    const claseData = (clase as Array<{
+      id_clase: number
+      id_ficha: number
+      fecha_clase: Date
+      hora_inicio: string
+      hora_fin: string
+      tema: string
+      id_instructor: number
+    }>)[0]
 
     // Verificar si ya existe una asistencia para este usuario en esta clase
     const asistenciaExistente = await prisma.$queryRaw`
@@ -88,7 +96,7 @@ export async function POST(request: NextRequest) {
       AND id_clase = ${parseInt(id_clase)}
     `
 
-    if ((asistenciaExistente as any[]).length > 0) {
+    if ((asistenciaExistente as Array<unknown>).length > 0) {
       return NextResponse.json(
         { success: false, error: 'Ya se registró la asistencia para este usuario en esta clase' },
         { status: 400 }
@@ -114,7 +122,7 @@ export async function POST(request: NextRequest) {
       : null
 
     // Crear la asistencia
-    const asistencia = await prisma.$executeRaw`
+    await prisma.$executeRaw`
       INSERT INTO asistencia (id_usuario, id_clase, estado_asistencia, fecha_asistencia, hora_registro)
       VALUES (${usuario.id_usuario}, ${parseInt(id_clase)}, ${estadoAsistencia}, NOW(), ${horaRegistroFinal})
     `
@@ -142,7 +150,14 @@ export async function POST(request: NextRequest) {
       success: true,
       message: `Asistencia registrada como: ${estadoAsistencia}`,
       data: {
-        asistencia: (asistenciaCreada as any[])[0],
+        asistencia: (asistenciaCreada as Array<{
+          id_asistencia: number
+          id_usuario: number
+          id_clase: number
+          estado_asistencia: string
+          hora_registro: string | null
+          fecha_registro: Date
+        }>)[0],
         estado_determinado: estadoAsistencia,
         hora_registro: horaRegistroFinal,
         hora_inicio_clase: claseData.hora_inicio

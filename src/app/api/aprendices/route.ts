@@ -198,7 +198,28 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Construir filtros
-    const where: any = {
+    const where: {
+      rol: {
+        nombre_rol: string
+      }
+      OR?: Array<{
+        nombre: { contains: string; mode: 'insensitive' }
+      } | {
+        apellido: { contains: string; mode: 'insensitive' }
+      } | {
+        numero_documento: { contains: string }
+      } | {
+        correo_electronico: { contains: string; mode: 'insensitive' }
+      }>
+      ficha?: {
+        numero_ficha: string
+      }
+      AND?: Array<{
+        ficha?: {
+          numero_ficha: string
+        }
+      }>
+    } = {
       rol: {
         nombre_rol: 'Aprendiz'
       }

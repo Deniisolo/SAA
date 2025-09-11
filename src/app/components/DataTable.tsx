@@ -4,7 +4,7 @@
 export type Column = {
   key: string
   label: string
-  render?: (item: any) => React.ReactNode
+  render?: (item: Record<string, unknown>) => React.ReactNode
 }
 
 export type Row = {
@@ -45,9 +45,9 @@ export function GenericDataTable({
   onEdit, 
   onDelete 
 }: { 
-  data: any[]
+  data: Record<string, unknown>[]
   columns: Column[]
-  onEdit?: (item: any) => void
+  onEdit?: (item: Record<string, unknown>) => void
   onDelete?: (id: number) => void
 }) {
   if (!data || data.length === 0) {
@@ -71,10 +71,10 @@ export function GenericDataTable({
         </thead>
         <tbody>
           {data.map((item, index) => (
-            <tr key={item.id || index} className="even:bg-gray-50">
+            <tr key={(item.id as string) || index} className="even:bg-gray-50">
               {columns.map((column) => (
                 <Td key={column.key}>
-                  {column.render ? column.render(item) : item[column.key]}
+                  {column.render ? column.render(item) : String(item[column.key] || '')}
                 </Td>
               ))}
               {(onEdit || onDelete) && (
@@ -90,7 +90,7 @@ export function GenericDataTable({
                     )}
                     {onDelete && (
                       <button
-                        onClick={() => onDelete(item.id || item.id_usuario || item.id_ficha || item.id_competencia || item.id_competencia_ficha || item.id_clase)}
+                        onClick={() => onDelete(Number(item.id || item.id_usuario || item.id_ficha || item.id_competencia || item.id_competencia_ficha || item.id_clase || 0))}
                         className="px-2 py-1 bg-red-500 text-white text-xs rounded hover:bg-red-600"
                       >
                         Eliminar

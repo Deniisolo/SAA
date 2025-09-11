@@ -20,7 +20,7 @@ export async function connectDatabase() {
   try {
     await prisma.$connect();
     console.log('✅ Conexión a MySQL establecida correctamente');
-  } catch (error) {
+    } catch (error) {
     console.error('❌ Error al conectar con MySQL:', error);
     throw error;
   }
@@ -31,7 +31,7 @@ export async function disconnectDatabase() {
   try {
     await prisma.$disconnect();
     console.log('✅ Conexión a MySQL cerrada correctamente');
-  } catch (error) {
+    } catch (error) {
     console.error('❌ Error al desconectar de MySQL:', error);
   }
 }
@@ -41,7 +41,7 @@ export async function checkDatabaseConnection() {
   try {
     await prisma.$queryRaw`SELECT 1`;
     return { status: 'connected', message: 'Base de datos conectada' };
-  } catch (error) {
+    } catch {
     return { status: 'error', message: 'Error de conexión a la base de datos' };
   }
 }

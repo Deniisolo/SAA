@@ -22,7 +22,7 @@ interface Usuario {
 }
 
 export default function GestionUsuarios() {
-  const { user, hasRole } = useAuth()
+  const { hasRole } = useAuth()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +37,7 @@ export default function GestionUsuarios() {
       } else {
         setError('Error al cargar los usuarios')
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión')
     } finally {
       setLoading(false)
@@ -70,7 +70,7 @@ export default function GestionUsuarios() {
     console.log('Crear usuario')
   }
 
-  const handleEdit = (usuario: Usuario) => {
+  const handleEdit = (usuario: Record<string, unknown>) => {
     // Implementar modal o navegación para editar usuario
     console.log('Editar usuario:', usuario)
   }
@@ -86,7 +86,7 @@ export default function GestionUsuarios() {
         } else {
           setError('Error al eliminar el usuario')
         }
-      } catch (err) {
+      } catch {
         setError('Error de conexión')
       }
     }
@@ -97,9 +97,9 @@ export default function GestionUsuarios() {
     { key: 'apellido', label: 'Apellido' },
     { key: 'correo_electronico', label: 'Email' },
     { key: 'numero_documento', label: 'Documento' },
-    { key: 'rol', label: 'Rol', render: (usuario: Usuario) => usuario.rol.nombre_rol },
-    { key: 'ficha', label: 'Ficha', render: (usuario: Usuario) => usuario.ficha.numero_ficha },
-    { key: 'estado_estudiante', label: 'Estado', render: (usuario: Usuario) => usuario.estado_estudiante.descripcion_estado }
+    { key: 'rol', label: 'Rol', render: (usuario) => (usuario as unknown as Usuario).rol.nombre_rol },
+    { key: 'ficha', label: 'Ficha', render: (usuario) => (usuario as unknown as Usuario).ficha.numero_ficha },
+    { key: 'estado_estudiante', label: 'Estado', render: (usuario) => (usuario as unknown as Usuario).estado_estudiante.descripcion_estado }
   ]
 
   if (loading) {
@@ -142,7 +142,7 @@ export default function GestionUsuarios() {
           </div>
           
           <GenericDataTable
-            data={usuarios}
+            data={usuarios as unknown as Record<string, unknown>[]}
             columns={columns}
             onEdit={handleEdit}
             onDelete={handleDelete}

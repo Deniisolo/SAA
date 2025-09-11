@@ -4,10 +4,6 @@ import { useState, useEffect } from 'react'
 // import { useAuth } from '../../../providers/AuthProvider' // Comentado temporalmente
 import Navbar from '../../components/Navbar'
 import SemáforoAsistencia, { EstadisticasSemáforo, SemáforoTabla } from '../../../components/SemáforoAsistencia'
-import EscánerQRAsistencia from '../../../components/EscánerQRAsistencia'
-import EscánerQRMejorado from '../../../components/EscánerQRMejorado'
-import EscánerQRSimple from '../../../components/EscánerQRSimple'
-import TestQRScanner from '../../../components/TestQRScanner'
 import TestQRScannerMejorado from '../../../components/TestQRScannerMejorado'
 import { calcularEstadisticasAsistencia, EstadoAsistencia } from '../../../lib/asistencia-utils'
 
@@ -59,7 +55,7 @@ export default function GestionAsistencia() {
       } else {
         setError('Error al cargar las clases')
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión')
     } finally {
       setLoading(false)
@@ -79,12 +75,28 @@ export default function GestionAsistencia() {
       } else {
         setError('Error al cargar las asistencias')
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión')
     }
   }
 
-  const handleAsistenciaRegistrada = (data: any) => {
+  const handleAsistenciaRegistrada = (data: {
+    success: boolean
+    message: string
+    data?: {
+      asistencia: {
+        id_asistencia: number
+        id_usuario: number
+        id_clase: number
+        estado_asistencia: string
+        hora_registro: string | null
+        fecha_registro: Date
+      }
+      estado_determinado: string
+      hora_registro: string
+      hora_inicio_clase: string
+    }
+  }) => {
     // Recargar las asistencias cuando se registra una nueva
     if (claseSeleccionada) {
       fetchAsistencias(claseSeleccionada)
@@ -155,7 +167,7 @@ export default function GestionAsistencia() {
           {clases.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p>No hay clases disponibles</p>
-              <p className="text-sm">Crea una clase primero en la sección "Gestión de Clases"</p>
+              <p className="text-sm">Crea una clase primero en la sección &quot;Gestión de Clases&quot;</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -216,11 +228,7 @@ export default function GestionAsistencia() {
         {/* Escáner QR Simple */}
         {claseSeleccionada && (
           <div className="mb-6">
-            <EscánerQRSimple
-              idClase={claseSeleccionada}
-              onAsistenciaRegistrada={handleAsistenciaRegistrada}
-              onError={handleError}
-            />
+            <TestQRScannerMejorado />
           </div>
         )}
 

@@ -1,24 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyToken, extractTokenFromRequest, ROLES } from './lib/auth';
+// import { verifyToken, extractTokenFromRequest, ROLES } from './lib/auth';
 
 // Rutas que requieren autenticación
-const protectedRoutes = [
-  '/admin',
-  '/estadisticas',
-  '/crear-aprendiz',
-  '/modificar-aprendiz'
-];
+// const protectedRoutes = [
+//   '/admin',
+//   '/estadisticas',
+//   '/crear-aprendiz',
+//   '/modificar-aprendiz'
+// ];
 
 // Rutas que solo pueden acceder instructores y coordinadores
-const instructorRoutes = [
-  '/admin',
-  '/estadisticas',
-  '/crear-aprendiz',
-  '/modificar-aprendiz'
-];
+// const instructorRoutes = [
+//   '/admin',
+//   '/estadisticas',
+//   '/crear-aprendiz',
+//   '/modificar-aprendiz'
+// ];
 
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  // const { pathname } = request.nextUrl;
 
   // Temporalmente deshabilitar el middleware para rutas protegidas
   // Dejar que el cliente maneje la autenticación

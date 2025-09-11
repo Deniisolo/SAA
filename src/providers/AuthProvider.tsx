@@ -53,7 +53,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = JSON.parse(storedUser);
           setToken(storedToken);
           setUser(userData);
-        } catch (error) {
+        } catch {
           // Si hay error al parsear, limpiar localStorage
           localStorage.removeItem('token');
           localStorage.removeItem('user');

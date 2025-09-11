@@ -22,7 +22,7 @@ interface CompetenciaFicha {
 }
 
 export default function GestionAsociaciones() {
-  const { user, hasRole } = useAuth()
+  const { hasRole } = useAuth()
   const [asociaciones, setAsociaciones] = useState<CompetenciaFicha[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +37,7 @@ export default function GestionAsociaciones() {
       } else {
         setError('Error al cargar las asociaciones')
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión')
     } finally {
       setLoading(false)
@@ -70,7 +70,7 @@ export default function GestionAsociaciones() {
     console.log('Crear asociación')
   }
 
-  const handleEdit = (asociacion: CompetenciaFicha) => {
+  const handleEdit = (asociacion: Record<string, unknown>) => {
     // Implementar modal o navegación para editar asociación
     console.log('Editar asociación:', asociacion)
   }
@@ -86,17 +86,17 @@ export default function GestionAsociaciones() {
         } else {
           setError('Error al eliminar la asociación')
         }
-      } catch (err) {
+      } catch {
         setError('Error de conexión')
       }
     }
   }
 
   const columns: Column[] = [
-    { key: 'ficha', label: 'Ficha', render: (asociacion: CompetenciaFicha) => asociacion.ficha.numero_ficha },
-    { key: 'programa', label: 'Programa', render: (asociacion: CompetenciaFicha) => asociacion.ficha.programa_formacion.nombre_programa },
-    { key: 'competencia', label: 'Competencia', render: (asociacion: CompetenciaFicha) => asociacion.competencia.nombre_competencia },
-    { key: 'codigo', label: 'Código', render: (asociacion: CompetenciaFicha) => asociacion.competencia.codigo_competencia }
+    { key: 'ficha', label: 'Ficha', render: (asociacion) => (asociacion as unknown as CompetenciaFicha).ficha.numero_ficha },
+    { key: 'programa', label: 'Programa', render: (asociacion) => (asociacion as unknown as CompetenciaFicha).ficha.programa_formacion.nombre_programa },
+    { key: 'competencia', label: 'Competencia', render: (asociacion) => (asociacion as unknown as CompetenciaFicha).competencia.nombre_competencia },
+    { key: 'codigo', label: 'Código', render: (asociacion) => (asociacion as unknown as CompetenciaFicha).competencia.codigo_competencia }
   ]
 
   if (loading) {
@@ -139,7 +139,7 @@ export default function GestionAsociaciones() {
           </div>
           
           <GenericDataTable
-            data={asociaciones}
+            data={asociaciones as unknown as Record<string, unknown>[]}
             columns={columns}
             onEdit={handleEdit}
             onDelete={handleDelete}

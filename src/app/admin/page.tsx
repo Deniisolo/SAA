@@ -1,5 +1,5 @@
 'use client'
-import { useMemo, useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import LoadingSpinner from '../../components/LoadingSpinner'
@@ -62,20 +62,6 @@ export default function AdminPage() {
   
   const [tab, setTab] = useState<'perfiles'|'centros'>('perfiles')
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login')
-    }
-  }, [isAuthenticated, authLoading, router])
-
-  if (authLoading) {
-    return <LoadingSpinner message="Verificando autenticación..." />
-  }
-
-  if (!isAuthenticated) {
-    return null
-  }
-
   // Estado Perfiles
   const [perfiles, setPerfiles] = useState<Perfil[]>(MOCK_PERFILES)
   const [perfilDraft, setPerfilDraft] = useState<Perfil>({
@@ -98,6 +84,20 @@ export default function AdminPage() {
     codigo: '',
   })
   const [editCentroId, setEditCentroId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, authLoading, router])
+
+  if (authLoading) {
+    return <LoadingSpinner message="Verificando autenticación..." />
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   /** ------- Acciones Perfiles ------- */
   const savePerfil = () => {

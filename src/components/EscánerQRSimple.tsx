@@ -6,7 +6,23 @@ import { EstadoAsistencia } from '../lib/asistencia-utils'
 
 interface EscánerQRSimpleProps {
   idClase: number
-  onAsistenciaRegistrada: (data: any) => void
+  onAsistenciaRegistrada: (data: {
+    success: boolean
+    message: string
+    data?: {
+      asistencia: {
+        id_asistencia: number
+        id_usuario: number
+        id_clase: number
+        estado_asistencia: string
+        hora_registro: string | null
+        fecha_registro: Date
+      }
+      estado_determinado: string
+      hora_registro: string
+      hora_inicio_clase: string
+    }
+  }) => void
   onError: (error: string) => void
 }
 
@@ -16,7 +32,21 @@ export default function EscánerQRSimple({
   onError 
 }: EscánerQRSimpleProps) {
   const [isScanning, setIsScanning] = useState(false)
-  const [ultimaAsistencia, setUltimaAsistencia] = useState<any>(null)
+  const [ultimaAsistencia, setUltimaAsistencia] = useState<{
+    asistencia: {
+      id_asistencia: number
+      id_usuario: number
+      id_clase: number
+      estado_asistencia: string
+      hora_registro: string | null
+      fecha_registro: Date
+      nombre: string
+      apellido: string
+    }
+    estado_determinado: string
+    hora_registro: string
+    hora_inicio_clase: string
+  } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [codigoManual, setCodigoManual] = useState('')
   const videoRef = useRef<HTMLVideoElement>(null)

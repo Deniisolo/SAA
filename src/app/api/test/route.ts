@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       status: 'success',
       receivedData: body
     });
-  } catch (error) {
+    } catch {
     return NextResponse.json({
       message: 'Error al procesar los datos',
       method: 'POST',

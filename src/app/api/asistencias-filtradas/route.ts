@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const idClase = searchParams.get('clase')
 
     let whereClause = ''
-    const params: any[] = []
+    const params: (string | number)[] = []
 
     if (idClase) {
       whereClause = 'WHERE a.id_clase = ?'

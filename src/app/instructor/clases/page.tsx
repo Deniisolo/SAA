@@ -31,7 +31,10 @@ export default function GestionClases() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [claseEditando, setClaseEditando] = useState<Clase | null>(null)
-  const [competencias, setCompetencias] = useState<any[]>([])
+  const [competencias, setCompetencias] = useState<{
+    id_competencia: number
+    nombre_competencia: string
+  }[]>([])
   const [formData, setFormData] = useState({
     nombre_clase: '',
     descripcion: '',
@@ -149,16 +152,17 @@ export default function GestionClases() {
     }
   }
 
-  const handleEdit = (clase: Clase) => {
-    setClaseEditando(clase)
+  const handleEdit = (clase: Record<string, unknown>) => {
+    const claseData = clase as unknown as Clase
+    setClaseEditando(claseData)
     setFormData({
-      nombre_clase: clase.nombre_clase,
-      descripcion: clase.descripcion || '',
-      fecha_clase: new Date(clase.fecha_clase).toISOString().split('T')[0],
-      hora_inicio: clase.hora_inicio,
-      hora_fin: clase.hora_fin,
-      id_competencia: clase.id_competencia.toString(),
-      id_instructor: clase.id_instructor.toString()
+      nombre_clase: claseData.nombre_clase,
+      descripcion: claseData.descripcion || '',
+      fecha_clase: new Date(claseData.fecha_clase).toISOString().split('T')[0],
+      hora_inicio: claseData.hora_inicio,
+      hora_fin: claseData.hora_fin,
+      id_competencia: claseData.id_competencia.toString(),
+      id_instructor: claseData.id_instructor.toString()
     })
     setShowEditModal(true)
   }
@@ -257,12 +261,12 @@ export default function GestionClases() {
 
   const columns: Column[] = [
     { key: 'nombre_clase', label: 'Nombre de la Clase' },
-    { key: 'competencia', label: 'Competencia', render: (clase: Clase) => clase.competencia.nombre_competencia },
-    { key: 'codigo', label: 'Código', render: (clase: Clase) => clase.competencia.codigo_competencia },
-    { key: 'fecha_clase', label: 'Fecha', render: (clase: Clase) => formatDate(clase.fecha_clase) },
+    { key: 'competencia', label: 'Competencia', render: (clase) => (clase as unknown as Clase).competencia.nombre_competencia },
+    { key: 'codigo', label: 'Código', render: (clase) => (clase as unknown as Clase).competencia.codigo_competencia },
+    { key: 'fecha_clase', label: 'Fecha', render: (clase) => formatDate((clase as unknown as Clase).fecha_clase) },
     { key: 'hora_inicio', label: 'Hora Inicio' },
     { key: 'hora_fin', label: 'Hora Fin' },
-    { key: 'asistencias_count', label: 'Asistencias', render: (clase: Clase) => clase._count.asistencias }
+    { key: 'asistencias_count', label: 'Asistencias', render: (clase) => (clase as unknown as Clase)._count.asistencias }
   ]
 
   if (loading) {
@@ -308,7 +312,7 @@ export default function GestionClases() {
           </div>
           
           <GenericDataTable
-            data={clases}
+            data={clases as unknown as Record<string, unknown>[]}
             columns={columns}
             onEdit={handleEdit}
             onDelete={handleDelete}
@@ -462,7 +466,7 @@ export default function GestionClases() {
                   <option value="">Seleccionar competencia</option>
                   {competencias.map((competencia) => (
                     <option key={competencia.id_competencia} value={competencia.id_competencia}>
-                      {competencia.nombre_competencia} - {competencia.codigo_competencia}
+                      {competencia.nombre_competencia}
                     </option>
                   ))}
                 </select>

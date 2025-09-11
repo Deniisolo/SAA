@@ -18,7 +18,7 @@ interface Ficha {
 }
 
 export default function GestionFichas() {
-  const { user, hasRole } = useAuth()
+  const { hasRole } = useAuth()
   const [fichas, setFichas] = useState<Ficha[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +33,7 @@ export default function GestionFichas() {
       } else {
         setError('Error al cargar las fichas')
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión')
     } finally {
       setLoading(false)
@@ -66,7 +66,7 @@ export default function GestionFichas() {
     console.log('Crear ficha')
   }
 
-  const handleEdit = (ficha: Ficha) => {
+  const handleEdit = (ficha: Record<string, unknown>) => {
     // Implementar modal o navegación para editar ficha
     console.log('Editar ficha:', ficha)
   }
@@ -82,7 +82,7 @@ export default function GestionFichas() {
         } else {
           setError('Error al eliminar la ficha')
         }
-      } catch (err) {
+      } catch {
         setError('Error de conexión')
       }
     }
@@ -90,9 +90,9 @@ export default function GestionFichas() {
 
   const columns: Column[] = [
     { key: 'numero_ficha', label: 'Número de Ficha' },
-    { key: 'programa_formacion', label: 'Programa', render: (ficha: Ficha) => ficha.programa_formacion.nombre_programa },
-    { key: 'nivel_formacion', label: 'Nivel', render: (ficha: Ficha) => ficha.programa_formacion.nivel_formacion },
-    { key: 'usuarios_count', label: 'Aprendices', render: (ficha: Ficha) => ficha._count.usuarios }
+    { key: 'programa_formacion', label: 'Programa', render: (ficha) => (ficha as unknown as Ficha).programa_formacion.nombre_programa },
+    { key: 'nivel_formacion', label: 'Nivel', render: (ficha) => (ficha as unknown as Ficha).programa_formacion.nivel_formacion },
+    { key: 'usuarios_count', label: 'Aprendices', render: (ficha) => (ficha as unknown as Ficha)._count.usuarios }
   ]
 
   if (loading) {
@@ -135,7 +135,7 @@ export default function GestionFichas() {
           </div>
           
           <GenericDataTable
-            data={fichas}
+            data={fichas as unknown as Record<string, unknown>[]}
             columns={columns}
             onEdit={handleEdit}
             onDelete={handleDelete}

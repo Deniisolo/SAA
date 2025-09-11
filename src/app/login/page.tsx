@@ -49,7 +49,7 @@ function LoginPageContent() {
       } else {
         setError('Credenciales inválidas. Intenta nuevamente.')
       }
-    } catch (error) {
+    } catch {
       setError('Error de conexión. Intenta nuevamente.')
     } finally {
       setLoading(false)

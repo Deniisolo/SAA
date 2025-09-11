@@ -15,7 +15,23 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     // Construir filtros
-    const where: any = {};
+    const where: {
+      OR?: Array<{
+        nombre: { contains: string; mode: 'insensitive' }
+      } | {
+        apellido: { contains: string; mode: 'insensitive' }
+      } | {
+        correo_electronico: { contains: string; mode: 'insensitive' }
+      } | {
+        numero_documento: { contains: string; mode: 'insensitive' }
+      }>
+      rol?: {
+        nombre_rol: { contains: string; mode: 'insensitive' }
+      }
+      programa_formacion?: {
+        nombre_programa: { contains: string; mode: 'insensitive' }
+      }
+    } = {};
     
     if (search) {
       where.OR = [
@@ -142,21 +158,31 @@ export async function POST(request: NextRequest) {
 
     // Crear usuarios
     const createdUsuarios = await prisma.usuario.createMany({
-      data: usuarios.map((usuario: any) => ({
+      data: usuarios.map((usuario: {
+        nombre: string
+        apellido: string
+        correo_electronico: string
+        telefono?: string
+        numero_documento?: string
+        usemame: string
+        contrasena: string
+        id_rol: number
+        id_ficha?: number
+      }) => ({
         nombre: usuario.nombre,
         apellido: usuario.apellido,
         correo_electronico: usuario.correo_electronico,
         telefono: usuario.telefono || '',
         numero_documento: usuario.numero_documento || '',
         usemame: usuario.usemame,
-        Contrasenia: usuario.Contrasenia || 'password123',
-        Rol_id_Rol: usuario.rol_id || 1,
-        TipoDocumento_id_Tipo_Documento: usuario.tipo_documento_id || 1,
-        EstadoEstudiante_id_estado_estudiante: usuario.estado_estudiante_id || 1,
-        Ficha_id_ficha: usuario.ficha_id || 1,
-        Genero_id_genero: usuario.genero_id || 1,
-        Programa_formacion_idPrograma_formacion: usuario.programa_formacion_id || 1,
-        Nivel_de_formacion_Id_Nivel_de_formacioncol: usuario.nivel_formacion_id || 'TECNICO'
+        Contrasenia: usuario.contrasena || 'password123',
+        Rol_id_Rol: usuario.id_rol || 1,
+        TipoDocumento_id_Tipo_Documento: 1,
+        EstadoEstudiante_id_estado_estudiante: 1,
+        Ficha_id_ficha: usuario.id_ficha || 1,
+        Genero_id_genero: 1,
+        Programa_formacion_idPrograma_formacion: 1,
+        Nivel_de_formacion_Id_Nivel_de_formacioncol: 'TECNICO'
       })),
       skipDuplicates: true
     });

@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
+// import Link from 'next/link'
 import SemáforoAsistencia from '../components/SemáforoAsistencia'
 import Navbar from './components/Navbar'
 import { EstadoAsistencia } from '../lib/asistencia-utils'
@@ -54,7 +54,7 @@ export default function HomePage() {
       } else {
         setError('Error al cargar las competencias')
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión al cargar competencias')
     }
   }
@@ -81,7 +81,7 @@ export default function HomePage() {
       } else {
         setError('Error al cargar las asistencias')
       }
-    } catch (err) {
+    } catch {
       setError('Error de conexión al cargar asistencias')
     } finally {
       setLoading(false)

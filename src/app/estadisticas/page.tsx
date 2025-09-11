@@ -47,19 +47,9 @@ export default function EstadisticasPage() {
   const [seleccionado, setSeleccionado] = useState(APRENDICES[0])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login')
-    }
-  }, [isAuthenticated, authLoading, router])
-
-  if (authLoading) {
-    return <LoadingSpinner message="Verificando autenticación..." />
-  }
-
-  if (!isAuthenticated) {
-    return null
-  }
+  // refs & handlers de descarga
+  const chartCardRef = useRef<HTMLDivElement>(null)
+  const dropRef = useRef<HTMLDivElement>(null)
 
   // persistencia
   useEffect(() => {
@@ -79,6 +69,12 @@ export default function EstadisticasPage() {
   useEffect(() => {
     localStorage.setItem('estadisticas.nombre', seleccionado)
   }, [seleccionado])
+
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isAuthenticated, authLoading, router])
 
   // datos agregados
   const serieGeneral: Serie[] = useMemo(
@@ -108,8 +104,13 @@ export default function EstadisticasPage() {
 
   const data = vista === 'aprendiz' ? seriePorAprendiz : serieGeneral
 
-  // refs & handlers de descarga
-  const chartCardRef = useRef<HTMLDivElement>(null)
+  if (authLoading) {
+    return <LoadingSpinner message="Verificando autenticación..." />
+  }
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   const downloadXLSX = () => {
     const rows = data.map(d => ({
@@ -170,7 +171,6 @@ export default function EstadisticasPage() {
   }
 
   // cerrar dropdown al click fuera
-  const dropRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
       if (openList && dropRef.current && !dropRef.current.contains(e.target as Node)) {
