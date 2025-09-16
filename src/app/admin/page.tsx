@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import ProtectedRoute from '../../components/ProtectedRoute'
 import { useAuth } from '../../providers/AuthProvider'
 import clsx from 'clsx'
 
@@ -56,7 +57,7 @@ function Field({ label, children }: {label:string; children:React.ReactNode}) {
 }
 
 /** ---------- Página ---------- */
-export default function AdminPage() {
+function AdminPageContent() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
   
@@ -360,5 +361,13 @@ export default function AdminPage() {
       </div>
       </div>
     </main>
+  )
+}
+
+export default function AdminPage() {
+  return (
+    <ProtectedRoute requiredRoles={['admin']}>
+      <AdminPageContent />
+    </ProtectedRoute>
   )
 }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import ChatWidget from '../components/ChatWidget'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import ProtectedRoute from '../../components/ProtectedRoute'
 import { useAuth } from '../../providers/AuthProvider'
 import StatsChart from '../components/StatsChart'
 import { FiChevronDown } from 'react-icons/fi'
@@ -38,7 +39,7 @@ const APRENDICES = [
   'Sofía Valentina Ortiz Gómez',
 ]
 
-export default function EstadisticasPage() {
+function EstadisticasPageContent() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
   
@@ -308,6 +309,14 @@ export default function EstadisticasPage() {
       {/* Asistín */}
       <ChatWidget label="Hola, soy Asistín!" className="fixed bottom-6 right-6 z-40" />
     </main>
+  )
+}
+
+export default function EstadisticasPage() {
+  return (
+    <ProtectedRoute requiredRoles={['admin', 'instructor']}>
+      <EstadisticasPageContent />
+    </ProtectedRoute>
   )
 }
 

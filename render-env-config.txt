@@ -1,0 +1,8 @@
+# Configuración para Render - Variables de Entorno
+# Copia estas variables en la sección "Environment" de tu aplicación en Render
+
+DATABASE_URL=postgresql://saa_user:zB6kVkRGcmneFU0xG1UuAXobF8XlWAB5@dpg-d33djp0dl3ps738pu130-a.oregon-postgres.render.com/saa_database
+JWT_SECRET=mi-secreto-super-seguro-para-jwt-render-production
+NODE_ENV=production
+NEXTAUTH_URL=https://tu-app.onrender.com
+NEXTAUTH_SECRET=tu-nextauth-secret-render

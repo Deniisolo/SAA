@@ -4,25 +4,10 @@ import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import ProtectedRoute from '../../components/ProtectedRoute'
 import { useAuth } from '../../providers/AuthProvider'
 
-export default function QrScannerPage() {
-  const { isAuthenticated, loading: authLoading } = useAuth()
-  const router = useRouter()
-
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      router.push('/login')
-    }
-  }, [isAuthenticated, authLoading, router])
-
-  if (authLoading) {
-    return <LoadingSpinner message="Verificando autenticación..." />
-  }
-
-  if (!isAuthenticated) {
-    return null
-  }
+function QrScannerPageContent() {
 
   return (
     <main className="min-h-screen bg-white">
@@ -54,5 +39,13 @@ export default function QrScannerPage() {
         </div>
       </div>
     </main>
+  )
+}
+
+export default function QrScannerPage() {
+  return (
+    <ProtectedRoute requiredRoles={['admin', 'instructor']}>
+      <QrScannerPageContent />
+    </ProtectedRoute>
   )
 }

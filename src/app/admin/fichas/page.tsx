@@ -3,7 +3,9 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../../providers/AuthProvider'
 import Navbar from '../../components/Navbar'
+import ProtectedRoute from '../../../components/ProtectedRoute'
 import { GenericDataTable, Column } from '../../components/DataTable'
+import { FiX, FiPlus } from 'react-icons/fi'
 
 interface Ficha {
   id_ficha: number
@@ -17,11 +19,30 @@ interface Ficha {
   }
 }
 
-export default function GestionFichas() {
+interface ProgramaFormacion {
+  idPrograma_formacion: number
+  nombre_programa: string
+  nivel_formacion: string
+}
+
+interface FormData {
+  numero_ficha: string
+  id_programa_formacion: string
+}
+
+function GestionFichasContent() {
   const { hasRole } = useAuth()
   const [fichas, setFichas] = useState<Ficha[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
+  const [programas, setProgramas] = useState<ProgramaFormacion[]>([])
+  const [formData, setFormData] = useState<FormData>({
+    numero_ficha: '',
+    id_programa_formacion: ''
+  })
+  const [loadingCreate, setLoadingCreate] = useState(false)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
 
   const fetchFichas = async () => {
     try {
@@ -40,9 +61,22 @@ export default function GestionFichas() {
     }
   }
 
+  const fetchProgramas = async () => {
+    try {
+      const response = await fetch('/api/programas-formacion')
+      if (response.ok) {
+        const data = await response.json()
+        setProgramas(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error al cargar programas:', error)
+    }
+  }
+
   useEffect(() => {
     if (hasRole(['admin'])) {
       fetchFichas()
+      fetchProgramas()
     }
   }, [hasRole])
 
@@ -62,8 +96,65 @@ export default function GestionFichas() {
   }
 
   const handleCreate = () => {
-    // Implementar modal o navegación para crear ficha
-    console.log('Crear ficha')
+    setShowModal(true)
+    setFormData({
+      numero_ficha: '',
+      id_programa_formacion: ''
+    })
+    setFormErrors({})
+  }
+
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setFormData({
+      numero_ficha: '',
+      id_programa_formacion: ''
+    })
+    setFormErrors({})
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Validaciones
+    const errors: Record<string, string> = {}
+    if (!formData.numero_ficha.trim()) {
+      errors.numero_ficha = 'El número de ficha es obligatorio'
+    }
+    if (!formData.id_programa_formacion) {
+      errors.id_programa_formacion = 'El programa de formación es obligatorio'
+    }
+    
+    setFormErrors(errors)
+    
+    if (Object.keys(errors).length > 0) {
+      return
+    }
+    
+    setLoadingCreate(true)
+    
+    try {
+      const response = await fetch('/api/fichas', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok) {
+        handleCloseModal()
+        fetchFichas() // Recargar la lista
+      } else {
+        setFormErrors({ general: data.error || 'Error al crear la ficha' })
+      }
+    } catch (error) {
+      setFormErrors({ general: 'Error de conexión' })
+    } finally {
+      setLoadingCreate(false)
+    }
   }
 
   const handleEdit = (ficha: Record<string, unknown>) => {
@@ -142,6 +233,97 @@ export default function GestionFichas() {
           />
         </div>
       </div>
+
+      {/* Modal para crear ficha */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-gray-900">Crear Nueva Ficha</h2>
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FiX size={24} />
+              </button>
+            </div>
+
+            {formErrors.general && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md">
+                <p className="text-sm text-red-800">{formErrors.general}</p>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Número de Ficha *
+                </label>
+                <input
+                  type="text"
+                  value={formData.numero_ficha}
+                  onChange={(e) => setFormData({ ...formData, numero_ficha: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formErrors.numero_ficha ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  placeholder="Ej: 2567890"
+                />
+                {formErrors.numero_ficha && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.numero_ficha}</p>
+                )}
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Programa de Formación *
+                </label>
+                <select
+                  value={formData.id_programa_formacion}
+                  onChange={(e) => setFormData({ ...formData, id_programa_formacion: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                    formErrors.id_programa_formacion ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                >
+                  <option value="">Seleccionar programa...</option>
+                  {programas.map((programa) => (
+                    <option key={programa.idPrograma_formacion} value={programa.idPrograma_formacion}>
+                      {programa.nombre_programa} ({programa.nivel_formacion})
+                    </option>
+                  ))}
+                </select>
+                {formErrors.id_programa_formacion && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.id_programa_formacion}</p>
+                )}
+              </div>
+
+              <div className="flex justify-end space-x-3">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loadingCreate}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loadingCreate ? 'Creando...' : 'Crear Ficha'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
+  )
+}
+
+export default function GestionFichas() {
+  return (
+    <ProtectedRoute requiredRoles={['admin']}>
+      <GestionFichasContent />
+    </ProtectedRoute>
   )
 }

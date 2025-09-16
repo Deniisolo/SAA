@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 // import { useAuth } from '../../../providers/AuthProvider' // Comentado temporalmente
 import Navbar from '../../components/Navbar'
+import ProtectedRoute from '../../../components/ProtectedRoute'
 import SemáforoAsistencia, { EstadisticasSemáforo, SemáforoTabla } from '../../../components/SemáforoAsistencia'
 import TestQRScannerMejorado from '../../../components/TestQRScannerMejorado'
 import { calcularEstadisticasAsistencia, EstadoAsistencia } from '../../../lib/asistencia-utils'
@@ -30,7 +31,7 @@ interface Clase {
   }
 }
 
-export default function GestionAsistencia() {
+function GestionAsistenciaContent() {
   // const { user, hasRole } = useAuth() // Comentado temporalmente
   const [clases, setClases] = useState<Clase[]>([])
   const [asistencias, setAsistencias] = useState<Asistencia[]>([])
@@ -317,5 +318,13 @@ export default function GestionAsistencia() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function GestionAsistencia() {
+  return (
+    <ProtectedRoute requiredRoles={['admin', 'instructor']}>
+      <GestionAsistenciaContent />
+    </ProtectedRoute>
   )
 }

@@ -1,10 +1,11 @@
 // src/app/page.tsx
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 // import Link from 'next/link'
 import SemáforoAsistencia from '../components/SemáforoAsistencia'
 import Navbar from './components/Navbar'
+import ProtectedRoute from '../components/ProtectedRoute'
 import { EstadoAsistencia } from '../lib/asistencia-utils'
 
 interface Competencia {
@@ -33,7 +34,7 @@ interface Asistencia {
   codigo_competencia: string
 }
 
-export default function HomePage() {
+function HomePageContent() {
   const [competencias, setCompetencias] = useState<Competencia[]>([])
   const [asistencias, setAsistencias] = useState<Asistencia[]>([])
   const [loading, setLoading] = useState(true)
@@ -60,7 +61,7 @@ export default function HomePage() {
   }
 
   // Cargar asistencias con filtros
-  const cargarAsistencias = async () => {
+  const cargarAsistencias = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
@@ -86,7 +87,7 @@ export default function HomePage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [competenciaSeleccionada, fechaSeleccionada])
 
   // Efectos
   useEffect(() => {
@@ -95,7 +96,7 @@ export default function HomePage() {
 
   useEffect(() => {
     cargarAsistencias()
-  }, [competenciaSeleccionada, fechaSeleccionada, cargarAsistencias])
+  }, [cargarAsistencias])
 
   // Estadísticas
   const estadisticas = {
@@ -342,5 +343,13 @@ export default function HomePage() {
         </div>
       </main>
     </div>
+  )
+}
+
+export default function HomePage() {
+  return (
+    <ProtectedRoute>
+      <HomePageContent />
+    </ProtectedRoute>
   )
 }

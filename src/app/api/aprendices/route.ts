@@ -60,19 +60,82 @@ export async function POST(request: NextRequest) {
       }, { status: 409 });
     }
 
-    // Mapear tipo de documento
-    const tipoDocumentoMap: { [key: string]: number } = {
-      'CC': 1, // Cédula de Ciudadanía
-      'TI': 2, // Tarjeta de Identidad
-      'CE': 3, // Cédula de Extranjería
-      'PAS': 4  // Pasaporte
-    };
+    // Buscar tipo de documento
+    const tipoDocumentoEncontrado = await prisma.tipoDocumento.findFirst({
+      where: {
+        OR: [
+          { nombre_documento: { contains: 'Cédula de Ciudadanía' } },
+          { TipoDocumentocol: tipoDocumento }
+        ]
+      }
+    });
 
-    // Mapear género
-    const generoMap: { [key: string]: number } = {
-      'M': 1, // Masculino
-      'F': 2  // Femenino
-    };
+    if (!tipoDocumentoEncontrado) {
+      return NextResponse.json({
+        message: 'Tipo de documento no encontrado',
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        error: 'El tipo de documento especificado no existe'
+      }, { status: 404 });
+    }
+
+    // Buscar género
+    const generoEncontrado = await prisma.genero.findFirst({
+      where: {
+        descripcion: genero === 'M' ? 'Masculino' : 'Femenino'
+      }
+    });
+
+    if (!generoEncontrado) {
+      return NextResponse.json({
+        message: 'Género no encontrado',
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        error: 'El género especificado no existe'
+      }, { status: 404 });
+    }
+
+    // Buscar estado de estudiante (Activo)
+    const estadoEstudiante = await prisma.estadoEstudiante.findFirst({
+      where: { descripcion_estado: 'Activo' }
+    });
+
+    if (!estadoEstudiante) {
+      return NextResponse.json({
+        message: 'Estado de estudiante no encontrado',
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        error: 'No se encontró el estado de estudiante activo'
+      }, { status: 404 });
+    }
+
+    // Buscar rol Aprendiz
+    const rolAprendiz = await prisma.rol.findFirst({
+      where: { nombre_rol: 'Aprendiz' }
+    });
+
+    if (!rolAprendiz) {
+      return NextResponse.json({
+        message: 'Rol Aprendiz no encontrado',
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        error: 'No se encontró el rol de Aprendiz'
+      }, { status: 404 });
+    }
+
+    // Buscar nivel de formación
+    const nivelFormacion = await prisma.nivelFormacion.findFirst({
+      where: { Id_Nivel_de_formacioncol: 'Tecnólogo' }
+    });
+
+    if (!nivelFormacion) {
+      return NextResponse.json({
+        message: 'Nivel de formación no encontrado',
+        timestamp: new Date().toISOString(),
+        status: 'error',
+        error: 'No se encontró el nivel de formación'
+      }, { status: 404 });
+    }
 
     // Buscar la ficha por número
     const fichaEncontrada = await prisma.ficha.findFirst({
@@ -100,13 +163,13 @@ export async function POST(request: NextRequest) {
         numero_documento: numeroDocumento.trim(),
         usemame: `${nombre.toLowerCase().replace(/\s+/g, '')}.${apellido.toLowerCase().replace(/\s+/g, '')}`,
         Contrasenia: '123456', // Contraseña por defecto
-        Rol_id_Rol: 3, // Aprendiz
-        TipoDocumento_id_Tipo_Documento: tipoDocumentoMap[tipoDocumento] || 1,
-        EstadoEstudiante_id_estado_estudiante: 1, // Activo
+        Rol_id_Rol: rolAprendiz.id_Rol,
+        TipoDocumento_id_Tipo_Documento: tipoDocumentoEncontrado.id_Tipo_Documento,
+        EstadoEstudiante_id_estado_estudiante: estadoEstudiante.id_estado_estudiante,
         Ficha_id_ficha: fichaEncontrada.id_ficha,
-        Genero_id_genero: generoMap[genero] || 1,
+        Genero_id_genero: generoEncontrado.id_genero,
         Programa_formacion_idPrograma_formacion: fichaEncontrada.id_programa_formacion,
-        Nivel_de_formacion_Id_Nivel_de_formacioncol: 'TÉCNICO'
+        Nivel_de_formacion_Id_Nivel_de_formacioncol: nivelFormacion.Id_Nivel_de_formacioncol
       },
       include: {
         rol: true,

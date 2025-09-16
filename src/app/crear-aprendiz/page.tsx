@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import ProtectedRoute from '../../components/ProtectedRoute'
 import { useAuth } from '../../providers/AuthProvider'
 import {
   FiUser,
@@ -25,9 +26,15 @@ type Form = {
   ficha: string
 }
 
-const FICHAS = ['2567844', '2567845', '2567846', '2567847', '2567848'] as const
+interface Ficha {
+  id_ficha: number
+  numero_ficha: string
+  programa_formacion: {
+    nombre_programa: string
+  }
+}
 
-export default function CrearAprendizPage() {
+function CrearAprendizPageContent() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
   
@@ -46,11 +53,13 @@ export default function CrearAprendizPage() {
     genero: 'M',
     correo: '',
     celular: '',
-    ficha: FICHAS[0],
+    ficha: '',
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [ok, setOk] = useState(false)
+  const [fichas, setFichas] = useState<Ficha[]>([])
+  const [loadingFichas, setLoadingFichas] = useState(true)
 
   const validar = useMemo(
     () => ({
@@ -67,11 +76,40 @@ export default function CrearAprendizPage() {
     []
   )
 
+  // Cargar fichas desde la base de datos
+  const cargarFichas = async () => {
+    try {
+      setLoadingFichas(true)
+      const response = await fetch('/api/fichas')
+      const data = await response.json()
+      
+      if (response.ok) {
+        setFichas(data.data || [])
+        // Establecer la primera ficha como valor por defecto si hay fichas disponibles
+        if (data.data && data.data.length > 0) {
+          setForm(prev => ({ ...prev, ficha: data.data[0].numero_ficha }))
+        }
+      } else {
+        console.error('Error al cargar fichas:', data.error)
+      }
+    } catch (error) {
+      console.error('Error de conexión al cargar fichas:', error)
+    } finally {
+      setLoadingFichas(false)
+    }
+  }
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push('/login')
     }
   }, [isAuthenticated, authLoading, router])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      cargarFichas()
+    }
+  }, [isAuthenticated])
 
   // FUNCIONES DESPUÉS DE LOS HOOKS
   const set = <K extends keyof Form>(k: K, v: Form[K]) =>
@@ -149,7 +187,7 @@ export default function CrearAprendizPage() {
           genero: 'M',
           correo: '',
           celular: '',
-          ficha: FICHAS[0],
+          ficha: fichas.length > 0 ? fichas[0].numero_ficha : '',
         })
         setErrors({}) // Limpiar errores
       } else {
@@ -246,12 +284,21 @@ export default function CrearAprendizPage() {
               </Field>
 
               <Field label="Número de ficha">
-                <Select
-                  icon={<FiHash />}
-                  value={form.ficha}
-                  onChange={v => set('ficha', v)}
-                  options={FICHAS.map(f => ({ value: f, label: f }))}
-                />
+                {loadingFichas ? (
+                  <div className="h-12 w-full rounded-xl bg-gray-100 flex items-center justify-center">
+                    <span className="text-sm text-gray-500">Cargando fichas...</span>
+                  </div>
+                ) : (
+                  <Select
+                    icon={<FiHash />}
+                    value={form.ficha}
+                    onChange={v => set('ficha', v)}
+                    options={fichas.map(f => ({ 
+                      value: f.numero_ficha, 
+                      label: `${f.numero_ficha} - ${f.programa_formacion.nombre_programa}` 
+                    }))}
+                  />
+                )}
               </Field>
 
               <Field
@@ -367,11 +414,13 @@ function Select({
   onChange,
   options,
   icon,
+  disabled = false,
 }: {
   value: string
   onChange: (v: string) => void
   options: { value: string; label: string }[]
   icon?: React.ReactNode
+  disabled?: boolean
 }) {
   return (
     <div className="relative">
@@ -383,11 +432,13 @@ function Select({
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
+        disabled={disabled}
         className={`h-12 w-full appearance-none rounded-xl bg-gray-100 px-4 ${
           icon ? 'pl-10' : ''
         } text-sm text-gray-900 outline-none
                     border border-transparent focus:border-blue-400 focus:bg-white transition
-                    bg-[length:10px_10px] bg-no-repeat`}
+                    bg-[length:10px_10px] bg-no-repeat
+                    ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
         style={{
           backgroundImage:
             'linear-gradient(45deg,transparent 50%,#9ca3af 50%),linear-gradient(135deg,#9ca3af 50%,transparent 50%)',
@@ -405,5 +456,10 @@ function Select({
   )
 }
 
-
-
+export default function CrearAprendizPage() {
+  return (
+    <ProtectedRoute requiredRoles={['admin', 'instructor']}>
+      <CrearAprendizPageContent />
+    </ProtectedRoute>
+  )
+}

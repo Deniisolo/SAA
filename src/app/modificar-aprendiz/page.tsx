@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Navbar from '../components/Navbar'
 import LoadingSpinner from '../../components/LoadingSpinner'
+import ProtectedRoute from '../../components/ProtectedRoute'
 import { useAuth } from '../../providers/AuthProvider'
 import { FiEdit2, FiTrash2, FiX, FiSearch } from 'react-icons/fi'
 import ChatWidget from '../components/ChatWidget' 
@@ -28,7 +29,7 @@ function Dot({ color }: { color: Llegada }) {
   return <span className={`inline-block h-3.5 w-3.5 rounded-full ${map[color]}`} />
 }
 
-export default function ModificarAprendizPage() {
+function ModificarAprendizPageContent() {
   const { isAuthenticated, loading: authLoading } = useAuth()
   const router = useRouter()
   
@@ -551,5 +552,13 @@ function Field({
       <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
       {children}
     </div>
+  )
+}
+
+export default function ModificarAprendizPage() {
+  return (
+    <ProtectedRoute requiredRoles={['admin', 'instructor']}>
+      <ModificarAprendizPageContent />
+    </ProtectedRoute>
   )
 }
