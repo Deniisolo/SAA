@@ -3,26 +3,57 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const usuarios = await prisma.usuario.findMany({
-      include: {
-        rol: true,
-        tipo_documento: true,
-        estado_estudiante: true,
-        ficha: true,
-        genero: true,
-        programa_formacion: true,
-        nivel_formacion: true
-      },
-      orderBy: {
-        nombre: 'asc'
-      }
-    })
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get('page') || '1')
+    const limit = parseInt(searchParams.get('limit') || '20')
+    const skip = (page - 1) * limit
+
+    // Obtener usuarios con paginación - optimizado para solo los campos necesarios
+    const [usuarios, total] = await Promise.all([
+      prisma.usuario.findMany({
+        select: {
+          id_usuario: true,
+          nombre: true,
+          apellido: true,
+          correo_electronico: true,
+          numero_documento: true,
+          rol: {
+            select: {
+              id_Rol: true,
+              nombre_rol: true
+            }
+          },
+          ficha: {
+            select: {
+              id_ficha: true,
+              numero_ficha: true
+            }
+          },
+          estado_estudiante: {
+            select: {
+              id_estado_estudiante: true,
+              descripcion_estado: true
+            }
+          }
+        },
+        orderBy: {
+          nombre: 'asc'
+        },
+        skip,
+        take: limit
+      }),
+      prisma.usuario.count()
+    ])
 
     return NextResponse.json({
       success: true,
-      data: usuarios
+      data: usuarios,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
     })
   } catch (error) {
     console.error('Error al obtener usuarios:', error)

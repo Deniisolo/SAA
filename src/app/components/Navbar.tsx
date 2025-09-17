@@ -5,7 +5,7 @@ import Image from 'next/image'
 import clsx from 'clsx'
 import { useAuth } from '../../providers/AuthProvider'
 
-type NavKey = 'home' | 'usuarios' | 'fichas' | 'competencias' | 'asociaciones' | 'clases' | 'asistencia' | 'agregar-competencias' | 'crear-aprendiz' | 'admin' | 'crear' | 'estadisticas' | 'modificar' | 'escanear'
+type NavKey = 'home' | 'usuarios' | 'fichas' | 'competencias' | 'clases' | 'asistencia' | 'crear-aprendiz' | 'admin' | 'crear' | 'estadisticas' | 'modificar' | 'escanear'
 
 export default function Navbar({ active }: { active?: NavKey }) {
   const { user, logout, hasRole } = useAuth()
@@ -16,8 +16,6 @@ export default function Navbar({ active }: { active?: NavKey }) {
     { key: 'usuarios', label: 'Gestión de Usuarios', href: '/admin/usuarios' },
     { key: 'fichas', label: 'Gestión de Fichas', href: '/admin/fichas' },
     { key: 'competencias', label: 'Gestión de Competencias', href: '/admin/competencias' },
-    { key: 'agregar-competencias', label: 'Agregar Competencias Química', href: '/admin/agregar-competencias' },
-    { key: 'asociaciones', label: 'Asociaciones', href: '/admin/asociaciones' },
     { key: 'crear-aprendiz', label: 'Crear Aprendiz', href: '/crear-aprendiz' },
   ]
 

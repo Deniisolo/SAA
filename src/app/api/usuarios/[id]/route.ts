@@ -5,15 +5,14 @@ const prisma = new PrismaClient()
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id: idParam } = await params;
-    const id = parseInt(idParam)
+    const id = parseInt(params.id)
     
     if (isNaN(id)) {
       return NextResponse.json(
-        { success: false, error: 'ID inválido' },
+        { success: false, error: 'ID de usuario inválido' },
         { status: 400 }
       )
     }
@@ -53,12 +52,19 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id: idParam } = await params;
-    const id = parseInt(idParam)
+    const id = parseInt(params.id)
     const body = await request.json()
+    
+    if (isNaN(id)) {
+      return NextResponse.json(
+        { success: false, error: 'ID de usuario inválido' },
+        { status: 400 }
+      )
+    }
+
     const {
       nombre,
       apellido,
@@ -67,22 +73,13 @@ export async function PUT(
       numero_documento,
       usemame,
       Contrasenia,
-      codigo_qr,
       Rol_id_Rol,
       TipoDocumento_id_Tipo_Documento,
       EstadoEstudiante_id_estado_estudiante,
       Ficha_id_ficha,
       Genero_id_genero,
-      Programa_formacion_idPrograma_formacion,
-      Nivel_de_formacion_Id_Nivel_de_formacioncol
+      Programa_formacion_idPrograma_formacion
     } = body
-
-    if (isNaN(id)) {
-      return NextResponse.json(
-        { success: false, error: 'ID inválido' },
-        { status: 400 }
-      )
-    }
 
     // Verificar que el usuario existe
     const usuarioExistente = await prisma.usuario.findUnique({
@@ -96,12 +93,12 @@ export async function PUT(
       )
     }
 
-    // Si se está cambiando el username, verificar que no exista otro con el mismo username
+    // Verificar que el username no esté en uso por otro usuario
     if (usemame && usemame !== usuarioExistente.usemame) {
       const usernameExistente = await prisma.usuario.findFirst({
         where: { 
           usemame,
-          id_usuario: { not: id }
+          NOT: { id_usuario: id }
         }
       })
 
@@ -113,12 +110,12 @@ export async function PUT(
       }
     }
 
-    // Si se está cambiando el email, verificar que no exista otro con el mismo email
+    // Verificar que el email no esté en uso por otro usuario
     if (correo_electronico && correo_electronico !== usuarioExistente.correo_electronico) {
       const emailExistente = await prisma.usuario.findFirst({
         where: { 
           correo_electronico,
-          id_usuario: { not: id }
+          NOT: { id_usuario: id }
         }
       })
 
@@ -130,25 +127,30 @@ export async function PUT(
       }
     }
 
+    // Preparar datos para actualizar
+    const dataToUpdate: any = {
+      nombre,
+      apellido,
+      correo_electronico,
+      telefono: telefono || '',
+      numero_documento: numero_documento || '',
+      usemame,
+      Rol_id_Rol: parseInt(Rol_id_Rol),
+      TipoDocumento_id_Tipo_Documento: TipoDocumento_id_Tipo_Documento ? parseInt(TipoDocumento_id_Tipo_Documento) : usuarioExistente.TipoDocumento_id_Tipo_Documento,
+      EstadoEstudiante_id_estado_estudiante: EstadoEstudiante_id_estado_estudiante ? parseInt(EstadoEstudiante_id_estado_estudiante) : usuarioExistente.EstadoEstudiante_id_estado_estudiante,
+      Ficha_id_ficha: Ficha_id_ficha ? parseInt(Ficha_id_ficha) : usuarioExistente.Ficha_id_ficha,
+      Genero_id_genero: Genero_id_genero ? parseInt(Genero_id_genero) : usuarioExistente.Genero_id_genero,
+      Programa_formacion_idPrograma_formacion: Programa_formacion_idPrograma_formacion ? parseInt(Programa_formacion_idPrograma_formacion) : usuarioExistente.Programa_formacion_idPrograma_formacion
+    }
+
+    // Solo actualizar contraseña si se proporciona
+    if (Contrasenia && Contrasenia.trim() !== '') {
+      dataToUpdate.Contrasenia = Contrasenia
+    }
+
     const usuario = await prisma.usuario.update({
       where: { id_usuario: id },
-      data: {
-        nombre,
-        apellido,
-        correo_electronico,
-        telefono,
-        numero_documento,
-        usemame,
-        Contrasenia,
-        codigo_qr,
-        Rol_id_Rol: parseInt(Rol_id_Rol),
-        TipoDocumento_id_Tipo_Documento: parseInt(TipoDocumento_id_Tipo_Documento),
-        EstadoEstudiante_id_estado_estudiante: parseInt(EstadoEstudiante_id_estado_estudiante),
-        Ficha_id_ficha: parseInt(Ficha_id_ficha),
-        Genero_id_genero: parseInt(Genero_id_genero),
-        Programa_formacion_idPrograma_formacion: parseInt(Programa_formacion_idPrograma_formacion),
-        Nivel_de_formacion_Id_Nivel_de_formacioncol
-      },
+      data: dataToUpdate,
       include: {
         rol: true,
         tipo_documento: true,
@@ -175,30 +177,21 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id: idParam } = await params;
-    const id = parseInt(idParam)
-
+    const id = parseInt(params.id)
+    
     if (isNaN(id)) {
       return NextResponse.json(
-        { success: false, error: 'ID inválido' },
+        { success: false, error: 'ID de usuario inválido' },
         { status: 400 }
       )
     }
 
     // Verificar que el usuario existe
     const usuarioExistente = await prisma.usuario.findUnique({
-      where: { id_usuario: id },
-      include: {
-        _count: {
-          select: {
-            clases_instructor: true,
-            asistencias: true
-          }
-        }
-      }
+      where: { id_usuario: id }
     })
 
     if (!usuarioExistente) {
@@ -208,21 +201,13 @@ export async function DELETE(
       )
     }
 
-    // Verificar si tiene clases como instructor o asistencias
-    if (usuarioExistente._count.clases_instructor > 0 || usuarioExistente._count.asistencias > 0) {
-      return NextResponse.json(
-        { success: false, error: 'No se puede eliminar un usuario que tiene clases como instructor o asistencias registradas' },
-        { status: 400 }
-      )
-    }
-
     await prisma.usuario.delete({
       where: { id_usuario: id }
     })
 
     return NextResponse.json({
       success: true,
-      message: 'Usuario eliminado correctamente'
+      message: 'Usuario eliminado exitosamente'
     })
   } catch (error) {
     console.error('Error al eliminar usuario:', error)

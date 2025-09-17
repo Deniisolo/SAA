@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, memo } from 'react'
+import React, { useState, useEffect, useCallback, memo, useMemo } from 'react'
 import { useAuth } from '../../../providers/AuthProvider'
 import Navbar from '../../components/Navbar'
 import { GenericDataTable, Column } from '../../components/DataTable'
@@ -79,9 +79,50 @@ const UsuarioForm = memo(function UsuarioForm({
 }) {
   const [formData, setFormData] = useState(initialData)
 
-  // Determinar si mostrar campos específicos de estudiante
-  const showStudentFields = formData.Rol_id_Rol && 
-    roles.find(rol => rol.id_Rol.toString() === formData.Rol_id_Rol)?.nombre_rol.toLowerCase() === 'aprendiz'
+  // Memoizar la determinación de campos de estudiante
+  const showStudentFields = useMemo(() => {
+    return formData.Rol_id_Rol && 
+      roles.find(rol => rol.id_Rol.toString() === formData.Rol_id_Rol)?.nombre_rol.toLowerCase() === 'aprendiz'
+  }, [formData.Rol_id_Rol, roles])
+
+  // Memoizar las opciones filtradas para evitar recálculos
+  const filteredTiposDocumento = useMemo(() => 
+    tiposDocumento
+      .filter(tipo => tipo.id_Tipo_Documento)
+      .filter((tipo, index, self) => 
+        index === self.findIndex(t => t.nombre_documento === tipo.nombre_documento)
+      ), [tiposDocumento])
+
+  const filteredRoles = useMemo(() => 
+    roles
+      .filter(rol => rol.id_Rol)
+      .filter((rol, index, self) => 
+        index === self.findIndex(r => r.nombre_rol === rol.nombre_rol)
+      ), [roles])
+
+  const filteredEstadosEstudiante = useMemo(() => 
+    estadosEstudiante
+      .filter(estado => estado.id_estado_estudiante)
+      .filter((estado, index, self) => 
+        index === self.findIndex(e => e.descripcion_estado === estado.descripcion_estado)
+      ), [estadosEstudiante])
+
+  const filteredFichas = useMemo(() => 
+    fichas.filter(ficha => ficha.id_ficha), [fichas])
+
+  const filteredGeneros = useMemo(() => 
+    generos
+      .filter(genero => genero.id_genero)
+      .filter((genero, index, self) => 
+        index === self.findIndex(g => g.descripcion === genero.descripcion)
+      ), [generos])
+
+  const filteredProgramasFormacion = useMemo(() => 
+    programasFormacion
+      .filter(programa => programa.idPrograma_formacion)
+      .filter((programa, index, self) => 
+        index === self.findIndex(p => p.nombre_programa === programa.nombre_programa)
+      ), [programasFormacion])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -148,16 +189,11 @@ const UsuarioForm = memo(function UsuarioForm({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Seleccionar tipo</option>
-            {tiposDocumento
-              .filter(tipo => tipo.id_Tipo_Documento)
-              .filter((tipo, index, self) => 
-                index === self.findIndex(t => t.nombre_documento === tipo.nombre_documento)
-              )
-              .map((tipo, index) => (
-                <option key={`tipo-${tipo.id_Tipo_Documento || index}`} value={tipo.id_Tipo_Documento}>
-                  {tipo.nombre_documento}
-                </option>
-              ))}
+            {filteredTiposDocumento.map((tipo, index) => (
+              <option key={`tipo-${tipo.id_Tipo_Documento || index}`} value={tipo.id_Tipo_Documento}>
+                {tipo.nombre_documento}
+              </option>
+            ))}
           </select>
         </div>
         <div>
@@ -208,16 +244,11 @@ const UsuarioForm = memo(function UsuarioForm({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Seleccionar rol</option>
-            {roles
-              .filter(rol => rol.id_Rol)
-              .filter((rol, index, self) => 
-                index === self.findIndex(r => r.nombre_rol === rol.nombre_rol)
-              )
-              .map((rol, index) => (
-                <option key={`rol-${rol.id_Rol || index}`} value={rol.id_Rol}>
-                  {rol.nombre_rol}
-                </option>
-              ))}
+            {filteredRoles.map((rol, index) => (
+              <option key={`rol-${rol.id_Rol || index}`} value={rol.id_Rol}>
+                {rol.nombre_rol}
+              </option>
+            ))}
           </select>
         </div>
         {showStudentFields && (
@@ -231,16 +262,11 @@ const UsuarioForm = memo(function UsuarioForm({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Seleccionar estado</option>
-              {estadosEstudiante
-                .filter(estado => estado.id_estado_estudiante)
-                .filter((estado, index, self) => 
-                  index === self.findIndex(e => e.descripcion_estado === estado.descripcion_estado)
-                )
-                .map((estado, index) => (
-                  <option key={`estado-${estado.id_estado_estudiante || index}`} value={estado.id_estado_estudiante}>
-                    {estado.descripcion_estado}
-                  </option>
-                ))}
+              {filteredEstadosEstudiante.map((estado, index) => (
+                <option key={`estado-${estado.id_estado_estudiante || index}`} value={estado.id_estado_estudiante}>
+                  {estado.descripcion_estado}
+                </option>
+              ))}
             </select>
           </div>
         )}
@@ -255,7 +281,7 @@ const UsuarioForm = memo(function UsuarioForm({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Seleccionar ficha</option>
-              {fichas.filter(ficha => ficha.id_ficha).map((ficha, index) => (
+              {filteredFichas.map((ficha, index) => (
                 <option key={`ficha-${ficha.id_ficha || index}`} value={ficha.id_ficha}>
                   {ficha.numero_ficha}
                 </option>
@@ -273,16 +299,11 @@ const UsuarioForm = memo(function UsuarioForm({
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="">Seleccionar género</option>
-            {generos
-              .filter(genero => genero.id_genero)
-              .filter((genero, index, self) => 
-                index === self.findIndex(g => g.descripcion === genero.descripcion)
-              )
-              .map((genero, index) => (
-                <option key={`genero-${genero.id_genero || index}`} value={genero.id_genero}>
-                  {genero.descripcion}
-                </option>
-              ))}
+            {filteredGeneros.map((genero, index) => (
+              <option key={`genero-${genero.id_genero || index}`} value={genero.id_genero}>
+                {genero.descripcion}
+              </option>
+            ))}
           </select>
         </div>
         {showStudentFields && (
@@ -296,16 +317,11 @@ const UsuarioForm = memo(function UsuarioForm({
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">Seleccionar programa</option>
-              {programasFormacion
-                .filter(programa => programa.idPrograma_formacion)
-                .filter((programa, index, self) => 
-                  index === self.findIndex(p => p.nombre_programa === programa.nombre_programa)
-                )
-                .map((programa, index) => (
-                  <option key={`programa-${programa.idPrograma_formacion || index}`} value={programa.idPrograma_formacion}>
-                    {programa.nombre_programa}
-                  </option>
-                ))}
+              {filteredProgramasFormacion.map((programa, index) => (
+                <option key={`programa-${programa.idPrograma_formacion || index}`} value={programa.idPrograma_formacion}>
+                  {programa.nombre_programa}
+                </option>
+              ))}
             </select>
           </div>
         )}
@@ -333,7 +349,13 @@ export default function GestionUsuarios() {
   const { hasRole, user } = useAuth()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
+  const [referenceDataLoading, setReferenceDataLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // Estados para paginación
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(20)
+  const [totalItems, setTotalItems] = useState(0)
   
   // Estados para modales
   const [showCreateModal, setShowCreateModal] = useState(false)
@@ -365,13 +387,21 @@ export default function GestionUsuarios() {
   const [generos, setGeneros] = useState<Genero[]>([])
   const [programasFormacion, setProgramasFormacion] = useState<ProgramaFormacion[]>([])
 
-  const fetchUsuarios = useCallback(async () => {
+  const fetchUsuarios = useCallback(async (page: number = 1) => {
     try {
       setLoading(true)
-      const response = await fetch('/api/usuarios')
+      const startTime = performance.now()
+      
+      const response = await fetch(`/api/usuarios?page=${page}&limit=${itemsPerPage}`)
       if (response.ok) {
         const data = await response.json()
         setUsuarios(data.data || [])
+        setTotalItems(data.total || 0)
+        setCurrentPage(page)
+        
+        const endTime = performance.now()
+        const loadTime = Math.round(endTime - startTime)
+        console.log(`Usuarios cargados en ${loadTime}ms`)
       } else {
         setError('Error al cargar los usuarios')
       }
@@ -380,63 +410,56 @@ export default function GestionUsuarios() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [itemsPerPage])
 
   const fetchReferenceData = useCallback(async () => {
     try {
-      // Cargar roles
-      const rolesResponse = await fetch('/api/roles')
-      if (rolesResponse.ok) {
-        const rolesData = await rolesResponse.json()
-        setRoles(rolesData.data || [])
-      }
-
-      // Cargar tipos de documento
-      const tiposResponse = await fetch('/api/tipos-documento')
-      if (tiposResponse.ok) {
-        const tiposData = await tiposResponse.json()
-        setTiposDocumento(tiposData.data || [])
-      }
-
-      // Cargar estados de estudiante
-      const estadosResponse = await fetch('/api/estados-estudiante')
-      if (estadosResponse.ok) {
-        const estadosData = await estadosResponse.json()
-        setEstadosEstudiante(estadosData.data || [])
-      }
-
-      // Cargar fichas
-      const fichasResponse = await fetch('/api/fichas')
-      if (fichasResponse.ok) {
-        const fichasData = await fichasResponse.json()
-        setFichas(fichasData.data || [])
-      }
-
-      // Cargar géneros
-      const generosResponse = await fetch('/api/generos')
-      if (generosResponse.ok) {
-        const generosData = await generosResponse.json()
-        setGeneros(generosData.data || [])
-      }
-
-      // Cargar programas de formación
-      const programasResponse = await fetch('/api/programas-formacion')
-      if (programasResponse.ok) {
-        const programasData = await programasResponse.json()
-        setProgramasFormacion(programasData.data || [])
+      setReferenceDataLoading(true)
+      const startTime = performance.now()
+      
+      // Cargar todos los datos de referencia en una sola llamada
+      const response = await fetch('/api/reference-data')
+      if (response.ok) {
+        const data = await response.json()
+        const referenceData = data.data
+        
+        // Actualizar estados
+        setRoles(referenceData.roles || [])
+        setTiposDocumento(referenceData.tiposDocumento || [])
+        setEstadosEstudiante(referenceData.estadosEstudiante || [])
+        setFichas(referenceData.fichas || [])
+        setGeneros(referenceData.generos || [])
+        setProgramasFormacion(referenceData.programasFormacion || [])
+        
+        const endTime = performance.now()
+        const loadTime = Math.round(endTime - startTime)
+        console.log(`Datos de referencia cargados en ${loadTime}ms (cached: ${data.cached})`)
+      } else {
+        console.error('Error al cargar datos de referencia')
       }
     } catch (error) {
       console.error('Error al cargar datos de referencia:', error)
+    } finally {
+      setReferenceDataLoading(false)
     }
   }, [])
+
+  // Funciones de paginación
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      fetchUsuarios(page)
+    }
+  }
 
   useEffect(() => {
     // Ejecutar solo al montar. Evita re-ejecuciones por cambios de referencia en hasRole
     if (hasRole(['admin'])) {
-      fetchUsuarios()
-      fetchReferenceData()
+      // Cargar solo usuarios inicialmente, los datos de referencia se cargan cuando se abren los modales
+      fetchUsuarios(1)
     }
-  }, [fetchUsuarios, fetchReferenceData, hasRole])
+  }, [fetchUsuarios, hasRole])
 
   // Verificar permisos
   if (!hasRole(['admin'])) {
@@ -471,12 +494,16 @@ export default function GestionUsuarios() {
     })
   }
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     resetForm()
     setShowCreateModal(true)
+    // Cargar datos de referencia solo cuando se abre el modal
+    if (roles.length === 0) {
+      await fetchReferenceData()
+    }
   }
 
-  const handleEdit = (usuario: Record<string, unknown>) => {
+  const handleEdit = async (usuario: Record<string, unknown>) => {
     const user = usuario as unknown as Usuario
     setEditingUsuario(user)
     setFormData({
@@ -495,6 +522,10 @@ export default function GestionUsuarios() {
       Programa_formacion_idPrograma_formacion: user.programa_formacion.idPrograma_formacion.toString()
     })
     setShowEditModal(true)
+    // Cargar datos de referencia solo cuando se abre el modal
+    if (roles.length === 0) {
+      await fetchReferenceData()
+    }
   }
 
   const handleDelete = async (id: number) => {
@@ -504,7 +535,7 @@ export default function GestionUsuarios() {
           method: 'DELETE'
         })
         if (response.ok) {
-          fetchUsuarios() // Recargar la lista
+          fetchUsuarios(currentPage) // Recargar la lista manteniendo la página actual
           setError(null)
         } else {
           const errorData = await response.json()
@@ -534,7 +565,7 @@ export default function GestionUsuarios() {
         setShowEditModal(false)
         setEditingUsuario(null)
         resetForm()
-        fetchUsuarios()
+        fetchUsuarios(currentPage)
         setError(null)
       } else {
         const errorData = await response.json()
@@ -588,7 +619,10 @@ export default function GestionUsuarios() {
       <div className="min-h-screen bg-gray-50">
         <Navbar active="usuarios" />
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">Cargando...</div>
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-gray-600">Cargando usuarios...</p>
+          </div>
         </div>
       </div>
     )
@@ -628,6 +662,54 @@ export default function GestionUsuarios() {
             onEdit={handleEdit}
             onDelete={handleDelete}
           />
+          
+          {/* Paginación */}
+          {totalPages > 1 && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-gray-700">
+                  Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, totalItems)} de {totalItems} usuarios
+                </div>
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Anterior
+                  </button>
+                  
+                  {/* Mostrar números de página */}
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    const pageNum = Math.max(1, Math.min(totalPages - 4, currentPage - 2)) + i
+                    if (pageNum > totalPages) return null
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-3 py-1 text-sm border rounded-md ${
+                          currentPage === pageNum
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-300 hover:bg-gray-50'
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    )
+                  })}
+                  
+                  <button
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Siguiente
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Modales */}
@@ -639,22 +721,29 @@ export default function GestionUsuarios() {
           }}
           title="Crear Nuevo Usuario"
         >
-          <UsuarioForm
-            initialData={formData}
-            showEditModal={false}
-            roles={roles}
-            tiposDocumento={tiposDocumento}
-            estadosEstudiante={estadosEstudiante}
-            fichas={fichas}
-            generos={generos}
-            programasFormacion={programasFormacion}
-            currentUserRole={user?.rol || ''}
-            onSubmit={handleSubmit}
-            onCancel={() => {
-              setShowCreateModal(false)
-              resetForm()
-            }}
-          />
+          {referenceDataLoading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-gray-600">Cargando datos del formulario...</p>
+            </div>
+          ) : (
+            <UsuarioForm
+              initialData={formData}
+              showEditModal={false}
+              roles={roles}
+              tiposDocumento={tiposDocumento}
+              estadosEstudiante={estadosEstudiante}
+              fichas={fichas}
+              generos={generos}
+              programasFormacion={programasFormacion}
+              currentUserRole={user?.rol || ''}
+              onSubmit={handleSubmit}
+              onCancel={() => {
+                setShowCreateModal(false)
+                resetForm()
+              }}
+            />
+          )}
         </Modal>
 
         <Modal
@@ -666,23 +755,30 @@ export default function GestionUsuarios() {
           }}
           title="Editar Usuario"
         >
-          <UsuarioForm
-            initialData={formData}
-            showEditModal={true}
-            roles={roles}
-            tiposDocumento={tiposDocumento}
-            estadosEstudiante={estadosEstudiante}
-            fichas={fichas}
-            generos={generos}
-            programasFormacion={programasFormacion}
-            currentUserRole={user?.rol || ''}
-            onSubmit={handleSubmit}
-            onCancel={() => {
-              setShowEditModal(false)
-              setEditingUsuario(null)
-              resetForm()
-            }}
-          />
+          {referenceDataLoading ? (
+            <div className="text-center py-8">
+              <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+              <p className="mt-2 text-gray-600">Cargando datos del formulario...</p>
+            </div>
+          ) : (
+            <UsuarioForm
+              initialData={formData}
+              showEditModal={true}
+              roles={roles}
+              tiposDocumento={tiposDocumento}
+              estadosEstudiante={estadosEstudiante}
+              fichas={fichas}
+              generos={generos}
+              programasFormacion={programasFormacion}
+              currentUserRole={user?.rol || ''}
+              onSubmit={handleSubmit}
+              onCancel={() => {
+                setShowEditModal(false)
+                setEditingUsuario(null)
+                resetForm()
+              }}
+            />
+          )}
         </Modal>
       </div>
     </div>

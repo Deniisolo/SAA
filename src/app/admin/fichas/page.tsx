@@ -164,16 +164,28 @@ function GestionFichasContent() {
 
   const handleDelete = async (id: number) => {
     if (confirm('¿Estás seguro de que quieres eliminar esta ficha?')) {
+      // Actualización optimista: eliminar inmediatamente de la interfaz
+      const originalFichas = [...fichas]
+      setFichas(prevFichas => prevFichas.filter(ficha => ficha.id_ficha !== id))
+      
       try {
         const response = await fetch(`/api/fichas/${id}`, {
           method: 'DELETE'
         })
-        if (response.ok) {
-          fetchFichas() // Recargar la lista
+        
+        const data = await response.json()
+        
+        if (response.ok && data.success) {
+          // La eliminación fue exitosa, mantener el estado actualizado
+          setError(null)
         } else {
-          setError('Error al eliminar la ficha')
+          // Si falló, restaurar el estado original
+          setFichas(originalFichas)
+          setError(data.error || 'Error al eliminar la ficha')
         }
       } catch {
+        // Si hay error de conexión, restaurar el estado original
+        setFichas(originalFichas)
         setError('Error de conexión')
       }
     }
