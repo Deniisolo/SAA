@@ -33,13 +33,21 @@ export function verifyToken(token: string): UserPayload | null {
   }
 }
 
-// Extraer token del header Authorization
+// Extraer token del header Authorization o de las cookies
 export function extractTokenFromRequest(request: NextRequest): string | null {
+  // Primero intentar desde el header Authorization
   const authHeader = request.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
   }
-  return authHeader.substring(7);
+  
+  // Si no está en el header, buscar en las cookies
+  const tokenCookie = request.cookies.get('token');
+  if (tokenCookie) {
+    return tokenCookie.value;
+  }
+  
+  return null;
 }
 
 // Verificar si el usuario tiene el rol requerido

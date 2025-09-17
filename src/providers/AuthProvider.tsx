@@ -53,10 +53,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const userData = JSON.parse(storedUser);
           setToken(storedToken);
           setUser(userData);
+          
+          // Asegurar que la cookie también esté presente
+          if (!document.cookie.includes('token=')) {
+            document.cookie = `token=${storedToken}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`;
+          }
         } catch {
           // Si hay error al parsear, limpiar localStorage
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
         }
       }
       setLoading(false);
@@ -101,6 +107,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('token', newToken);
         localStorage.setItem('user', JSON.stringify(userData));
         
+        // También guardar en cookie para el middleware
+        document.cookie = `token=${newToken}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`;
+        
         // Actualizar estado inmediatamente
         setToken(newToken);
         setUser(userData);
@@ -108,8 +117,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         console.log('Login exitoso:', { newToken: !!newToken, userData: !!userData });
         
+        // Forzar una actualización del estado
+        setTimeout(() => {
+          setToken(newToken);
+          setUser(userData);
+        }, 100);
+        
         return true;
       } else {
+        console.error('Error en login:', data);
         throw new Error(data.error || 'Error al iniciar sesión');
       }
     } catch (error) {
@@ -122,6 +138,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Limpiar localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    
+    // Limpiar cookie
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
     
     // Limpiar estado
     setToken(null);

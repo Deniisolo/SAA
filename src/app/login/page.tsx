@@ -42,16 +42,18 @@ function LoginPageContent() {
       const success = await login(usemame, contrasenia)
       
       if (success) {
-        // El AuthProvider ya maneja la actualización del estado
-        // El useEffect se encargará de la redirección
-        const redirectTo = searchParams.get('redirect') || '/'
-        router.push(redirectTo)
+        // Esperar un momento para que se actualice el estado
+        setTimeout(() => {
+          const redirectTo = searchParams.get('redirect') || '/'
+          console.log('Redirigiendo a:', redirectTo)
+          router.push(redirectTo)
+        }, 200)
       } else {
         setError('Credenciales inválidas. Intenta nuevamente.')
+        setLoading(false)
       }
     } catch {
       setError('Error de conexión. Intenta nuevamente.')
-    } finally {
       setLoading(false)
     }
   }
