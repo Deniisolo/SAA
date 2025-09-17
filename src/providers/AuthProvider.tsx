@@ -87,6 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (usemame: string, contrasenia: string): Promise<boolean> => {
     try {
+      setLoading(true);
+      
       const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
@@ -98,10 +100,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }),
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
       const data = await response.json();
+      console.log('Response data:', data);
 
-      if (response.ok) {
+      if (response.ok && data.status === 'success') {
         const { token: newToken, user: userData } = data.data;
+        
+        // Validar que tenemos los datos necesarios
+        if (!newToken || !userData) {
+          console.error('Datos de respuesta incompletos:', data);
+          setLoading(false);
+          return false;
+        }
         
         // Guardar en localStorage
         localStorage.setItem('token', newToken);
@@ -115,21 +128,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(userData);
         setLoading(false);
         
-        console.log('Login exitoso:', { newToken: !!newToken, userData: !!userData });
-        
-        // Forzar una actualización del estado
-        setTimeout(() => {
-          setToken(newToken);
-          setUser(userData);
-        }, 100);
+        console.log('Login exitoso:', { 
+          tokenLength: newToken.length, 
+          userRole: userData.rol,
+          userName: userData.nombre 
+        });
         
         return true;
       } else {
         console.error('Error en login:', data);
-        throw new Error(data.error || 'Error al iniciar sesión');
+        setLoading(false);
+        throw new Error(data.error || data.message || 'Error al iniciar sesión');
       }
     } catch (error) {
       console.error('Error en login:', error);
+      setLoading(false);
       return false;
     }
   };
@@ -147,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     
     // Redirigir al login
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   const isAuthenticated = !!user && !!token && mounted;

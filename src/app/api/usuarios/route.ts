@@ -86,24 +86,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Preparar datos con valores por defecto para campos obligatorios
+    const dataToCreate: any = {
+      nombre,
+      apellido,
+      correo_electronico,
+      telefono: telefono || '',
+      numero_documento: numero_documento || '',
+      usemame,
+      Contrasenia,
+      codigo_qr: codigo_qr || '',
+      Rol_id_Rol: parseInt(Rol_id_Rol),
+      Nivel_de_formacion_Id_Nivel_de_formacioncol: Nivel_de_formacion_Id_Nivel_de_formacioncol || 'Tecnólogo',
+      // Valores por defecto para campos obligatorios
+      TipoDocumento_id_Tipo_Documento: TipoDocumento_id_Tipo_Documento ? parseInt(TipoDocumento_id_Tipo_Documento) : 1,
+      EstadoEstudiante_id_estado_estudiante: EstadoEstudiante_id_estado_estudiante ? parseInt(EstadoEstudiante_id_estado_estudiante) : 1,
+      Ficha_id_ficha: Ficha_id_ficha ? parseInt(Ficha_id_ficha) : 1,
+      Genero_id_genero: Genero_id_genero ? parseInt(Genero_id_genero) : 1,
+      Programa_formacion_idPrograma_formacion: Programa_formacion_idPrograma_formacion ? parseInt(Programa_formacion_idPrograma_formacion) : 1
+    }
+
     const usuario = await prisma.usuario.create({
-      data: {
-        nombre,
-        apellido,
-        correo_electronico,
-        telefono,
-        numero_documento,
-        usemame,
-        Contrasenia,
-        codigo_qr,
-        Rol_id_Rol: parseInt(Rol_id_Rol),
-        TipoDocumento_id_Tipo_Documento: parseInt(TipoDocumento_id_Tipo_Documento),
-        EstadoEstudiante_id_estado_estudiante: parseInt(EstadoEstudiante_id_estado_estudiante),
-        Ficha_id_ficha: parseInt(Ficha_id_ficha),
-        Genero_id_genero: parseInt(Genero_id_genero),
-        Programa_formacion_idPrograma_formacion: parseInt(Programa_formacion_idPrograma_formacion),
-        Nivel_de_formacion_Id_Nivel_de_formacioncol
-      },
+      data: dataToCreate,
       include: {
         rol: true,
         tipo_documento: true,

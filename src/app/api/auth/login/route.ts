@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar que el usuario sea Admin o Instructor
-    const rolUsuario = usuario.rol.nombre_rol;
+    const rolUsuario = usuario.rol.nombre_rol.toLowerCase();
     if (rolUsuario !== ROLES.INSTRUCTOR && rolUsuario !== ROLES.ADMIN) {
       return NextResponse.json({
         message: 'Acceso denegado',
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       usemame: usuario.usemame,
       nombre: usuario.nombre,
       apellido: usuario.apellido,
-      rol: usuario.rol.nombre_rol,
+      rol: usuario.rol.nombre_rol.toLowerCase(),
       correo_electronico: usuario.correo_electronico
     };
 
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
           apellido: usuario.apellido,
           usemame: usuario.usemame,
           correo_electronico: usuario.correo_electronico,
-          rol: usuario.rol.nombre_rol,
+          rol: usuario.rol.nombre_rol.toLowerCase(),
           telefono: usuario.telefono,
           numero_documento: usuario.numero_documento,
           tipo_documento: usuario.tipo_documento.nombre_documento,

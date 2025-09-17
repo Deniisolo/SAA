@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, memo } from 'react'
 import { useAuth } from '../../../providers/AuthProvider'
 import Navbar from '../../components/Navbar'
 import { GenericDataTable, Column } from '../../components/DataTable'
@@ -13,21 +13,21 @@ interface Usuario {
   telefono: string
   numero_documento: string
   usemame: string
-  rol: { nombre_rol: string; id_rol: number }
-  tipo_documento: { nombre_documento: string; id_tipo_documento: number }
+  rol: { nombre_rol: string; id_Rol: number }
+  tipo_documento: { nombre_documento: string; id_Tipo_Documento: number }
   estado_estudiante: { descripcion_estado: string; id_estado_estudiante: number }
   ficha: { numero_ficha: string; id_ficha: number }
   genero: { descripcion: string; id_genero: number }
-  programa_formacion: { nombre_programa: string; id_programa_formacion: number }
+  programa_formacion: { nombre_programa: string; idPrograma_formacion: number }
 }
 
 interface Rol {
-  id_rol: number
+  id_Rol: number
   nombre_rol: string
 }
 
 interface TipoDocumento {
-  id_tipo_documento: number
+  id_Tipo_Documento: number
   nombre_documento: string
 }
 
@@ -47,12 +47,290 @@ interface Genero {
 }
 
 interface ProgramaFormacion {
-  id_programa_formacion: number
+  idPrograma_formacion: number
   nombre_programa: string
 }
 
+// Formulario completamente independiente con estado interno
+const UsuarioForm = memo(function UsuarioForm({
+  initialData,
+  showEditModal,
+  roles,
+  tiposDocumento,
+  estadosEstudiante,
+  fichas,
+  generos,
+  programasFormacion,
+  currentUserRole,
+  onSubmit,
+  onCancel
+}: {
+  initialData: any
+  showEditModal: boolean
+  roles: Rol[]
+  tiposDocumento: TipoDocumento[]
+  estadosEstudiante: EstadoEstudiante[]
+  fichas: Ficha[]
+  generos: Genero[]
+  programasFormacion: ProgramaFormacion[]
+  currentUserRole: string
+  onSubmit: (data: any) => void
+  onCancel: () => void
+}) {
+  const [formData, setFormData] = useState(initialData)
+
+  // Determinar si mostrar campos específicos de estudiante
+  const showStudentFields = formData.Rol_id_Rol && 
+    roles.find(rol => rol.id_Rol.toString() === formData.Rol_id_Rol)?.nombre_rol.toLowerCase() === 'aprendiz'
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSubmit(formData)
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Nombre *
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.nombre}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, nombre: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Apellido *
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.apellido}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, apellido: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Email *
+          </label>
+          <input
+            type="email"
+            required
+            value={formData.correo_electronico}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, correo_electronico: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Teléfono
+          </label>
+          <input
+            type="tel"
+            value={formData.telefono}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, telefono: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Tipo de Documento
+          </label>
+          <select
+            value={formData.TipoDocumento_id_Tipo_Documento}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, TipoDocumento_id_Tipo_Documento: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Seleccionar tipo</option>
+            {tiposDocumento
+              .filter(tipo => tipo.id_Tipo_Documento)
+              .filter((tipo, index, self) => 
+                index === self.findIndex(t => t.nombre_documento === tipo.nombre_documento)
+              )
+              .map((tipo, index) => (
+                <option key={`tipo-${tipo.id_Tipo_Documento || index}`} value={tipo.id_Tipo_Documento}>
+                  {tipo.nombre_documento}
+                </option>
+              ))}
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Número de Documento
+          </label>
+          <input
+            type="text"
+            value={formData.numero_documento}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, numero_documento: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Username *
+          </label>
+          <input
+            type="text"
+            required
+            value={formData.usemame}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, usemame: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        {!showEditModal && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Contraseña *
+            </label>
+            <input
+              type="password"
+              required
+              value={formData.Contrasenia}
+              onChange={(e) => setFormData((prev: any) => ({ ...prev, Contrasenia: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Rol *
+          </label>
+          <select
+            required
+            value={formData.Rol_id_Rol}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, Rol_id_Rol: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Seleccionar rol</option>
+            {roles
+              .filter(rol => rol.id_Rol)
+              .filter((rol, index, self) => 
+                index === self.findIndex(r => r.nombre_rol === rol.nombre_rol)
+              )
+              .map((rol, index) => (
+                <option key={`rol-${rol.id_Rol || index}`} value={rol.id_Rol}>
+                  {rol.nombre_rol}
+                </option>
+              ))}
+          </select>
+        </div>
+        {showStudentFields && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Estado del Estudiante
+            </label>
+            <select
+              value={formData.EstadoEstudiante_id_estado_estudiante}
+              onChange={(e) => setFormData((prev: any) => ({ ...prev, EstadoEstudiante_id_estado_estudiante: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Seleccionar estado</option>
+              {estadosEstudiante
+                .filter(estado => estado.id_estado_estudiante)
+                .filter((estado, index, self) => 
+                  index === self.findIndex(e => e.descripcion_estado === estado.descripcion_estado)
+                )
+                .map((estado, index) => (
+                  <option key={`estado-${estado.id_estado_estudiante || index}`} value={estado.id_estado_estudiante}>
+                    {estado.descripcion_estado}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
+        {showStudentFields && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Ficha
+            </label>
+            <select
+              value={formData.Ficha_id_ficha}
+              onChange={(e) => setFormData((prev: any) => ({ ...prev, Ficha_id_ficha: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Seleccionar ficha</option>
+              {fichas.filter(ficha => ficha.id_ficha).map((ficha, index) => (
+                <option key={`ficha-${ficha.id_ficha || index}`} value={ficha.id_ficha}>
+                  {ficha.numero_ficha}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Género
+          </label>
+          <select
+            value={formData.Genero_id_genero}
+            onChange={(e) => setFormData((prev: any) => ({ ...prev, Genero_id_genero: e.target.value }))}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Seleccionar género</option>
+            {generos
+              .filter(genero => genero.id_genero)
+              .filter((genero, index, self) => 
+                index === self.findIndex(g => g.descripcion === genero.descripcion)
+              )
+              .map((genero, index) => (
+                <option key={`genero-${genero.id_genero || index}`} value={genero.id_genero}>
+                  {genero.descripcion}
+                </option>
+              ))}
+          </select>
+        </div>
+        {showStudentFields && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Programa de Formación
+            </label>
+            <select
+              value={formData.Programa_formacion_idPrograma_formacion}
+              onChange={(e) => setFormData((prev: any) => ({ ...prev, Programa_formacion_idPrograma_formacion: e.target.value }))}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">Seleccionar programa</option>
+              {programasFormacion
+                .filter(programa => programa.idPrograma_formacion)
+                .filter((programa, index, self) => 
+                  index === self.findIndex(p => p.nombre_programa === programa.nombre_programa)
+                )
+                .map((programa, index) => (
+                  <option key={`programa-${programa.idPrograma_formacion || index}`} value={programa.idPrograma_formacion}>
+                    {programa.nombre_programa}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
+      </div>
+      <div className="flex justify-end space-x-3 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+        >
+          Cancelar
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+        >
+          {showEditModal ? 'Actualizar' : 'Crear'} Usuario
+        </button>
+      </div>
+    </form>
+  )
+})
+
 export default function GestionUsuarios() {
-  const { hasRole } = useAuth()
+  const { hasRole, user } = useAuth()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -87,7 +365,7 @@ export default function GestionUsuarios() {
   const [generos, setGeneros] = useState<Genero[]>([])
   const [programasFormacion, setProgramasFormacion] = useState<ProgramaFormacion[]>([])
 
-  const fetchUsuarios = async () => {
+  const fetchUsuarios = useCallback(async () => {
     try {
       setLoading(true)
       const response = await fetch('/api/usuarios')
@@ -102,9 +380,9 @@ export default function GestionUsuarios() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const fetchReferenceData = async () => {
+  const fetchReferenceData = useCallback(async () => {
     try {
       // Cargar roles
       const rolesResponse = await fetch('/api/roles')
@@ -150,14 +428,15 @@ export default function GestionUsuarios() {
     } catch (error) {
       console.error('Error al cargar datos de referencia:', error)
     }
-  }
+  }, [])
 
   useEffect(() => {
+    // Ejecutar solo al montar. Evita re-ejecuciones por cambios de referencia en hasRole
     if (hasRole(['admin'])) {
       fetchUsuarios()
       fetchReferenceData()
     }
-  }, [hasRole])
+  }, [fetchUsuarios, fetchReferenceData, hasRole])
 
   // Verificar permisos
   if (!hasRole(['admin'])) {
@@ -208,12 +487,12 @@ export default function GestionUsuarios() {
       numero_documento: user.numero_documento || '',
       usemame: user.usemame,
       Contrasenia: '', // No mostrar contraseña
-      Rol_id_Rol: user.rol.id_rol.toString(),
-      TipoDocumento_id_Tipo_Documento: user.tipo_documento.id_tipo_documento.toString(),
+      Rol_id_Rol: user.rol.id_Rol.toString(),
+      TipoDocumento_id_Tipo_Documento: user.tipo_documento.id_Tipo_Documento.toString(),
       EstadoEstudiante_id_estado_estudiante: user.estado_estudiante.id_estado_estudiante.toString(),
       Ficha_id_ficha: user.ficha.id_ficha.toString(),
       Genero_id_genero: user.genero.id_genero.toString(),
-      Programa_formacion_idPrograma_formacion: user.programa_formacion.id_programa_formacion.toString()
+      Programa_formacion_idPrograma_formacion: user.programa_formacion.idPrograma_formacion.toString()
     })
     setShowEditModal(true)
   }
@@ -237,8 +516,7 @@ export default function GestionUsuarios() {
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (data: any) => {
     try {
       const url = showEditModal ? `/api/usuarios/${editingUsuario?.id_usuario}` : '/api/usuarios'
       const method = showEditModal ? 'PUT' : 'POST'
@@ -248,7 +526,7 @@ export default function GestionUsuarios() {
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(data)
       })
 
       if (response.ok) {
@@ -304,220 +582,6 @@ export default function GestionUsuarios() {
     )
   }
 
-  // Componente Formulario
-  const UsuarioForm = () => (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Nombre *
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.nombre}
-            onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Apellido *
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.apellido}
-            onChange={(e) => setFormData({ ...formData, apellido: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Email *
-          </label>
-          <input
-            type="email"
-            required
-            value={formData.correo_electronico}
-            onChange={(e) => setFormData({ ...formData, correo_electronico: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Teléfono
-          </label>
-          <input
-            type="tel"
-            value={formData.telefono}
-            onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Número de Documento
-          </label>
-          <input
-            type="text"
-            value={formData.numero_documento}
-            onChange={(e) => setFormData({ ...formData, numero_documento: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Username *
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.usemame}
-            onChange={(e) => setFormData({ ...formData, usemame: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
-        {!showEditModal && (
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contraseña *
-            </label>
-            <input
-              type="password"
-              required
-              value={formData.Contrasenia}
-              onChange={(e) => setFormData({ ...formData, Contrasenia: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        )}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Rol *
-          </label>
-          <select
-            required
-            value={formData.Rol_id_Rol}
-            onChange={(e) => setFormData({ ...formData, Rol_id_Rol: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Seleccionar rol</option>
-            {roles.map((rol) => (
-              <option key={rol.id_rol} value={rol.id_rol}>
-                {rol.nombre_rol}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Tipo de Documento
-          </label>
-          <select
-            value={formData.TipoDocumento_id_Tipo_Documento}
-            onChange={(e) => setFormData({ ...formData, TipoDocumento_id_Tipo_Documento: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Seleccionar tipo</option>
-            {tiposDocumento.map((tipo) => (
-              <option key={tipo.id_tipo_documento} value={tipo.id_tipo_documento}>
-                {tipo.nombre_documento}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Estado del Estudiante
-          </label>
-          <select
-            value={formData.EstadoEstudiante_id_estado_estudiante}
-            onChange={(e) => setFormData({ ...formData, EstadoEstudiante_id_estado_estudiante: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Seleccionar estado</option>
-            {estadosEstudiante.map((estado) => (
-              <option key={estado.id_estado_estudiante} value={estado.id_estado_estudiante}>
-                {estado.descripcion_estado}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Ficha
-          </label>
-          <select
-            value={formData.Ficha_id_ficha}
-            onChange={(e) => setFormData({ ...formData, Ficha_id_ficha: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Seleccionar ficha</option>
-            {fichas.map((ficha) => (
-              <option key={ficha.id_ficha} value={ficha.id_ficha}>
-                {ficha.numero_ficha}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Género
-          </label>
-          <select
-            value={formData.Genero_id_genero}
-            onChange={(e) => setFormData({ ...formData, Genero_id_genero: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Seleccionar género</option>
-            {generos.map((genero) => (
-              <option key={genero.id_genero} value={genero.id_genero}>
-                {genero.descripcion}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Programa de Formación
-          </label>
-          <select
-            value={formData.Programa_formacion_idPrograma_formacion}
-            onChange={(e) => setFormData({ ...formData, Programa_formacion_idPrograma_formacion: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="">Seleccionar programa</option>
-            {programasFormacion.map((programa) => (
-              <option key={programa.id_programa_formacion} value={programa.id_programa_formacion}>
-                {programa.nombre_programa}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <div className="flex justify-end space-x-3 pt-4">
-        <button
-          type="button"
-          onClick={() => {
-            setShowCreateModal(false)
-            setShowEditModal(false)
-            setEditingUsuario(null)
-            resetForm()
-          }}
-          className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-        >
-          Cancelar
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-        >
-          {showEditModal ? 'Actualizar' : 'Crear'} Usuario
-        </button>
-      </div>
-    </form>
-  )
 
   if (loading) {
     return (
@@ -575,7 +639,22 @@ export default function GestionUsuarios() {
           }}
           title="Crear Nuevo Usuario"
         >
-          <UsuarioForm />
+          <UsuarioForm
+            initialData={formData}
+            showEditModal={false}
+            roles={roles}
+            tiposDocumento={tiposDocumento}
+            estadosEstudiante={estadosEstudiante}
+            fichas={fichas}
+            generos={generos}
+            programasFormacion={programasFormacion}
+            currentUserRole={user?.rol || ''}
+            onSubmit={handleSubmit}
+            onCancel={() => {
+              setShowCreateModal(false)
+              resetForm()
+            }}
+          />
         </Modal>
 
         <Modal
@@ -587,7 +666,23 @@ export default function GestionUsuarios() {
           }}
           title="Editar Usuario"
         >
-          <UsuarioForm />
+          <UsuarioForm
+            initialData={formData}
+            showEditModal={true}
+            roles={roles}
+            tiposDocumento={tiposDocumento}
+            estadosEstudiante={estadosEstudiante}
+            fichas={fichas}
+            generos={generos}
+            programasFormacion={programasFormacion}
+            currentUserRole={user?.rol || ''}
+            onSubmit={handleSubmit}
+            onCancel={() => {
+              setShowEditModal(false)
+              setEditingUsuario(null)
+              resetForm()
+            }}
+          />
         </Modal>
       </div>
     </div>

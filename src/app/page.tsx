@@ -1,11 +1,8 @@
-// src/app/page.tsx
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-// import Link from 'next/link'
 import SemáforoAsistencia from '../components/SemáforoAsistencia'
 import Navbar from './components/Navbar'
-import ProtectedRoute from '../components/ProtectedRoute'
 import { EstadoAsistencia } from '../lib/asistencia-utils'
 
 interface Competencia {
@@ -34,7 +31,7 @@ interface Asistencia {
   codigo_competencia: string
 }
 
-function HomePageContent() {
+export default function HomePage() {
   const [competencias, setCompetencias] = useState<Competencia[]>([])
   const [asistencias, setAsistencias] = useState<Asistencia[]>([])
   const [loading, setLoading] = useState(true)
@@ -273,12 +270,12 @@ function HomePageContent() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Fecha
                     </th>
-                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                             Hora Clase
-                           </th>
-                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                             Hora Llegada
-                           </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Hora Clase
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Hora Llegada
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -316,24 +313,24 @@ function HomePageContent() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                         {new Date(asistencia.fecha_clase).toLocaleDateString('es-CO')}
                       </td>
-                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                             {asistencia.hora_inicio} - {asistencia.hora_fin}
-                           </td>
-                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                             {asistencia.hora_registro ? (
-                               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                 asistencia.estado_asistencia === 'presente' 
-                                   ? 'bg-green-100 text-green-800' 
-                                   : asistencia.estado_asistencia === 'tardanza'
-                                   ? 'bg-yellow-100 text-yellow-800'
-                                   : 'bg-red-100 text-red-800'
-                               }`}>
-                                 {asistencia.hora_registro}
-                               </span>
-                             ) : (
-                               <span className="text-red-600 text-xs font-medium">No registrada</span>
-                             )}
-                           </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {asistencia.hora_inicio} - {asistencia.hora_fin}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {asistencia.hora_registro ? (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            asistencia.estado_asistencia === 'presente' 
+                              ? 'bg-green-100 text-green-800' 
+                              : asistencia.estado_asistencia === 'tardanza'
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {asistencia.hora_registro}
+                          </span>
+                        ) : (
+                          <span className="text-red-600 text-xs font-medium">No registrada</span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -343,13 +340,5 @@ function HomePageContent() {
         </div>
       </main>
     </div>
-  )
-}
-
-export default function HomePage() {
-  return (
-    <ProtectedRoute>
-      <HomePageContent />
-    </ProtectedRoute>
   )
 }
