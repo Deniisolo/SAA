@@ -1,370 +1,466 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
-import jsQR from 'jsqr'
-import SemáforoAsistencia from './SemáforoAsistencia'
-import { EstadoAsistencia } from '../lib/asistencia-utils'
+import { useState, useRef, useEffect } from 'react'
+import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from 'html5-qrcode'
+import { Html5QrcodeError, Html5QrcodeResult } from 'html5-qrcode/esm/core'
+import { FiCamera, FiX, FiCheck, FiClock, FiUser } from 'react-icons/fi'
 
 interface EscánerQRAsistenciaProps {
-  idClase: number
-  onAsistenciaRegistrada: (data: {
-    success: boolean
-    message: string
-    data?: {
-      asistencia: {
-        id_asistencia: number
-        id_usuario: number
-        id_clase: number
-        estado_asistencia: string
-        hora_registro: string | null
-        fecha_registro: Date
-      }
-      estado_determinado: string
-      hora_registro: string
-      hora_inicio_clase: string
-    }
-  }) => void
+  claseId: number
+  onAsistenciaRegistrada: (data: any) => void
   onError: (error: string) => void
 }
 
-export default function EscánerQRAsistencia({ 
-  idClase, 
-  onAsistenciaRegistrada, 
-  onError 
-}: EscánerQRAsistenciaProps) {
+interface AsistenciaRegistrada {
+  id: number
+  nombre: string
+  apellido: string
+  estado: 'presente' | 'tardanza' | 'ausente'
+  horaRegistro: string
+  timestamp: Date
+}
+
+export default function EscánerQRAsistencia({ claseId, onAsistenciaRegistrada, onError }: EscánerQRAsistenciaProps) {
   const [isScanning, setIsScanning] = useState(false)
-  const [ultimaAsistencia, setUltimaAsistencia] = useState<{
-    asistencia: {
-      id_asistencia: number
-      id_usuario: number
-      id_clase: number
-      estado_asistencia: string
-      hora_registro: string | null
-      fecha_registro: Date
-      nombre: string
-      apellido: string
-    }
-    estado_determinado: string
-    hora_registro: string
-    hora_inicio_clase: string
-  } | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
+  const [scanner, setScanner] = useState<Html5QrcodeScanner | null>(null)
+  const [asistenciasRegistradas, setAsistenciasRegistradas] = useState<AsistenciaRegistrada[]>([])
+  const [isProcessing, setIsProcessing] = useState(false)
+  const scannerRef = useRef<HTMLDivElement>(null)
 
-  const iniciarEscáner = async () => {
-    try {
-      setError(null)
-      setIsScanning(true)
-
-      // Solicitar acceso a la cámara con mejor configuración
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { 
-          facingMode: 'environment', // Usar cámara trasera en móviles
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        } 
-      })
-      
-      streamRef.current = stream
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        
-        // Esperar a que el video esté listo antes de iniciar la detección
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current) {
-            videoRef.current.play().then(() => {
-              // Iniciar detección de códigos QR después de que el video esté reproduciéndose
-              setTimeout(() => detectarCodigoQR(), 500)
-            })
-          }
+  // Limpiar el escáner cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      if (scanner) {
+        try {
+          scanner.clear()
+        } catch (error) {
+          console.log('Error al limpiar scanner en cleanup:', error)
         }
       }
-    } catch (err) {
-      console.error('Error al acceder a la cámara:', err)
-      setError('Error al acceder a la cámara. Asegúrate de permitir el acceso.')
-      setIsScanning(false)
     }
-  }
+  }, [scanner])
 
-  const detenerEscáner = () => {
-    setIsScanning(false)
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop())
-      streamRef.current = null
-    }
-    if (videoRef.current) {
-      videoRef.current.srcObject = null
-    }
-  }
-
-  const detectarCodigoQR = () => {
-    if (!isScanning || !videoRef.current || !canvasRef.current) {
-      console.log('Escáner detenido o elementos no disponibles')
-      return
+  const startScanning = async () => {
+    if (scanner) {
+      scanner.clear()
+      setScanner(null)
     }
 
-    const video = videoRef.current
-    const canvas = canvasRef.current
-    const context = canvas.getContext('2d')
+    // Primero actualizar el estado para mostrar el elemento
+    setIsScanning(true)
 
-    if (!context) {
-      console.log('No se pudo obtener el contexto del canvas')
-      setTimeout(() => detectarCodigoQR(), 100)
-      return
-    }
-
-    if (video.readyState !== video.HAVE_ENOUGH_DATA) {
-      console.log('Video no está listo, estado:', video.readyState)
-      setTimeout(() => detectarCodigoQR(), 100)
-      return
-    }
-
-    // Configurar canvas con las dimensiones del video
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
-
-    // Dibujar frame actual en el canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height)
-
-    // Obtener datos de imagen para procesamiento
-    const imageData = context.getImageData(0, 0, canvas.width, canvas.height)
-    
-    // Detectar código QR usando jsQR
-    const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: "dontInvert",
-    })
-
-    if (code) {
-      console.log('🎯 Código QR detectado:', code.data)
-      procesarCodigoQR(code.data)
-      return // Detener el escáner después de detectar un código
-    }
-
-    // Continuar escaneando (reducir frecuencia para mejor rendimiento)
-    setTimeout(() => detectarCodigoQR(), 200)
-  }
-
-  const procesarCodigoQR = async (codigoQR: string) => {
-    try {
-      // Detener el escáner temporalmente para evitar múltiples lecturas
-      detenerEscáner()
-      
-      console.log('Procesando código QR:', codigoQR)
-      
-      // Validar formato del código QR
-      if (!codigoQR.startsWith('SAA-')) {
-        setError('Código QR inválido. Debe ser un código del sistema SAA.')
-        onError('Código QR inválido')
+    // Usar setTimeout para asegurar que el DOM se actualice
+    setTimeout(async () => {
+      const qrReaderElement = document.getElementById('qr-reader')
+      if (!qrReaderElement) {
+        console.error('Elemento qr-reader no encontrado')
+        setIsScanning(false)
         return
       }
 
+      // Limpiar el contenido previo
+      qrReaderElement.innerHTML = ''
+
+      try {
+        // Verificar que la cámara esté disponible
+        const devices = await navigator.mediaDevices.enumerateDevices()
+        const videoDevices = devices.filter(device => device.kind === 'videoinput')
+        
+        if (videoDevices.length === 0) {
+          console.error('No se encontraron cámaras disponibles')
+          setIsScanning(false)
+          return
+        }
+
+        console.log('Cámaras disponibles:', videoDevices.length)
+
+        const newScanner = new Html5QrcodeScanner(
+          'qr-reader',
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            supportedScanTypes: [Html5QrcodeSupportedFormats.QR_CODE],
+            showTorchButtonIfSupported: true,
+            showZoomSliderIfSupported: true,
+            defaultZoomValueIfSupported: 2,
+            useBarCodeDetectorIfSupported: false,
+            experimentalFeatures: {
+              useBarCodeDetectorIfSupported: false
+            }
+          },
+          false
+        )
+
+        try {
+          newScanner.render(
+            (decodedText: string, result: Html5QrcodeResult) => {
+              console.log('Código QR escaneado:', decodedText)
+              handleQRCodeScanned(decodedText)
+            },
+            (error: Html5QrcodeError) => {
+              // Ignorar errores de escaneo continuo
+              if (error.type !== 'NO_QR_CODE_FOUND') {
+                console.log('Error de escaneo:', error)
+              }
+            }
+          )
+
+          setScanner(newScanner)
+          console.log('Escáner QR iniciado correctamente')
+        } catch (renderError) {
+          console.error('Error al renderizar el escáner:', renderError)
+          setIsScanning(false)
+        }
+      } catch (error) {
+        console.error('Error al iniciar el escáner:', error)
+        setIsScanning(false)
+      }
+    }, 100) // Pequeño delay para asegurar que el DOM se actualice
+  }
+
+  const stopScanning = () => {
+    if (scanner) {
+      try {
+        scanner.clear()
+      } catch (error) {
+        console.log('Error al limpiar scanner:', error)
+      }
+      setScanner(null)
+    }
+    
+    // Limpiar el elemento DOM
+    const qrReaderElement = document.getElementById('qr-reader')
+    if (qrReaderElement) {
+      qrReaderElement.innerHTML = ''
+    }
+    
+    setIsScanning(false)
+  }
+
+  const handleQRCodeScanned = async (qrCode: string) => {
+    if (isProcessing) return
+
+    setIsProcessing(true)
+    
+    try {
+      // Detener el escáner temporalmente
+      if (scanner) {
+        try {
+          scanner.clear()
+        } catch (error) {
+          console.log('Error al limpiar scanner:', error)
+        }
+        setScanner(null)
+      }
+      setIsScanning(false)
+
+      // Registrar la asistencia
       const response = await fetch('/api/asistencias', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          codigo_qr: codigoQR,
-          id_clase: idClase
+          codigo_qr: qrCode,
+          id_clase: claseId
         })
       })
 
       const data = await response.json()
-      console.log('Respuesta del servidor:', data)
 
-      if (response.ok && data.status === 'success') {
-        setUltimaAsistencia(data.data)
-        onAsistenciaRegistrada(data.data)
-        setError(null)
+      if (response.ok && data.success) {
+        // Agregar a la lista de asistencias registradas
+        const nuevaAsistencia: AsistenciaRegistrada = {
+          id: Date.now(),
+          nombre: data.data.usuario.nombre,
+          apellido: data.data.usuario.apellido,
+          estado: data.data.estado_determinado,
+          horaRegistro: data.data.hora_registro,
+          timestamp: new Date()
+        }
+
+        setAsistenciasRegistradas(prev => [nuevaAsistencia, ...prev])
         
-        // Mostrar mensaje de éxito temporal
+        // Notificar al componente padre
+        onAsistenciaRegistrada(data)
+        
+        // Mostrar mensaje de éxito
         setTimeout(() => {
-          setUltimaAsistencia(null)
-        }, 5000)
+          // Reanudar el escáner después de un breve delay
+          setTimeout(() => {
+            if (!isScanning) {
+              startScanning()
+            }
+          }, 2000)
+        }, 1000)
+
       } else {
-        setError(data.error || 'Error al registrar asistencia')
-        onError(data.error || 'Error al registrar asistencia')
+        onError(data.message || 'Error al registrar la asistencia')
+        // Reanudar el escáner en caso de error
+        setTimeout(() => {
+          if (!isScanning) {
+            startScanning()
+          }
+        }, 2000)
       }
-    } catch (err) {
-      console.error('Error al procesar código QR:', err)
-      const errorMsg = 'Error de conexión al registrar asistencia'
-      setError(errorMsg)
-      onError(errorMsg)
+    } catch (error) {
+      console.error('Error al procesar QR:', error)
+      onError('Error de conexión al registrar asistencia')
+      // Reanudar el escáner en caso de error
+      setTimeout(() => {
+        if (!isScanning) {
+          startScanning()
+        }
+      }, 2000)
+    } finally {
+      setIsProcessing(false)
     }
   }
 
-  // Simulación de entrada manual para testing
-  const [codigoManual, setCodigoManual] = useState('')
-
-  const handleCodigoManual = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (codigoManual.trim()) {
-      procesarCodigoQR(codigoManual.trim())
-      setCodigoManual('')
+  const getEstadoIcon = (estado: string) => {
+    switch (estado) {
+      case 'presente':
+        return <FiCheck className="text-green-500" />
+      case 'tardanza':
+        return <FiClock className="text-yellow-500" />
+      case 'ausente':
+        return <FiX className="text-red-500" />
+      default:
+        return <FiUser className="text-gray-500" />
     }
   }
 
-  useEffect(() => {
-    return () => {
-      detenerEscáner()
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case 'presente':
+        return 'bg-green-100 text-green-800 border-green-200'
+      case 'tardanza':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200'
+      case 'ausente':
+        return 'bg-red-100 text-red-800 border-red-200'
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200'
     }
-  }, [])
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">📱 Escáner QR para Asistencia</h3>
-        <div className="flex items-center gap-2">
-          <div className={`w-3 h-3 rounded-full ${isScanning ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
-          <span className="text-sm text-gray-600">
-            {isScanning ? 'Escaneando...' : 'Detenido'}
-          </span>
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <FiCamera className="text-blue-500" />
+            Escáner QR de Asistencia
+          </h2>
+          <p className="text-gray-600 mt-1">Escanea los códigos QR de los aprendices para registrar asistencia</p>
+        </div>
+        
+        <div className="flex gap-2">
+          {!isScanning ? (
+            <>
+              <button
+                onClick={startScanning}
+                disabled={isProcessing}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                <FiCamera />
+                Iniciar Escáner
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    const devices = await navigator.mediaDevices.enumerateDevices()
+                    const videoDevices = devices.filter(device => device.kind === 'videoinput')
+                    console.log('🔍 Cámaras disponibles:', videoDevices.length)
+                    videoDevices.forEach((device, index) => {
+                      console.log(`Cámara ${index + 1}:`, device.label || 'Cámara sin nombre')
+                    })
+                    
+                    // Probar acceso a la cámara
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: true })
+                    console.log('✅ Cámara accesible:', stream.getVideoTracks().length, 'pistas de video')
+                    stream.getTracks().forEach(track => track.stop())
+                  } catch (error) {
+                    console.error('❌ Error al acceder a la cámara:', error)
+                  }
+                }}
+                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-2 text-sm"
+              >
+                🔍 Probar Cámara
+              </button>
+              <button
+                onClick={async () => {
+                  try {
+                    console.log('🚀 Iniciando escáner alternativo...')
+                    setIsScanning(true)
+                    
+                    const qrReaderElement = document.getElementById('qr-reader')
+                    if (!qrReaderElement) {
+                      console.error('Elemento qr-reader no encontrado')
+                      return
+                    }
+
+                    // Limpiar el contenido previo
+                    qrReaderElement.innerHTML = ''
+
+                    // Crear un video simple para mostrar la cámara
+                    const video = document.createElement('video')
+                    video.style.width = '100%'
+                    video.style.height = '300px'
+                    video.style.border = '2px solid #ccc'
+                    video.style.borderRadius = '8px'
+                    video.autoplay = true
+                    video.muted = true
+                    video.playsInline = true
+
+                    qrReaderElement.appendChild(video)
+
+                    // Obtener stream de la cámara
+                    const stream = await navigator.mediaDevices.getUserMedia({ 
+                      video: { 
+                        facingMode: 'environment',
+                        width: { ideal: 640 },
+                        height: { ideal: 480 }
+                      } 
+                    })
+                    
+                    video.srcObject = stream
+                    
+                    console.log('✅ Escáner alternativo iniciado - Cámara funcionando')
+                    console.log('💡 Nota: Esta es una versión simplificada. Usa la entrada manual para probar códigos QR.')
+                    
+                  } catch (error) {
+                    console.error('❌ Error al iniciar escáner alternativo:', error)
+                    setIsScanning(false)
+                  }
+                }}
+                className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-2 text-sm"
+              >
+                🎥 Escáner Simple
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={stopScanning}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+            >
+              <FiX />
+              Detener Escáner
+            </button>
+          )}
         </div>
       </div>
-      
-      {/* Controles del escáner */}
-      <div className="mb-4">
-        {!isScanning ? (
-          <button
-            onClick={iniciarEscáner}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
-          >
-            <span>📷</span>
-            Iniciar Escáner QR
-          </button>
-        ) : (
-          <button
-            onClick={detenerEscáner}
-            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
-          >
-            <span>⏹️</span>
-            Detener Escáner
-          </button>
-        )}
-      </div>
 
-      {/* Video del escáner */}
-      {isScanning && (
-        <div className="mb-4">
-          <div className="relative w-full max-w-md mx-auto">
-            <video
-              ref={videoRef}
-              className="w-full rounded-lg border-2 border-blue-300"
-              playsInline
-              muted
-            />
-            {/* Overlay con marco para el QR */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-48 h-48 border-2 border-white rounded-lg shadow-lg bg-transparent">
-                <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-blue-500 rounded-tl-lg"></div>
-                <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-blue-500 rounded-tr-lg"></div>
-                <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-blue-500 rounded-bl-lg"></div>
-                <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-blue-500 rounded-br-lg"></div>
+      {/* Área del Escáner */}
+      <div className="mb-6">
+        <div className="relative">
+          {/* Elemento del escáner - siempre presente pero oculto cuando no se está escaneando */}
+          <div 
+            id="qr-reader" 
+            className={`w-full max-w-md mx-auto ${!isScanning ? 'hidden' : ''}`}
+          ></div>
+          
+          {/* Overlay de procesamiento */}
+          {isProcessing && (
+            <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+              <div className="bg-white p-4 rounded-lg flex items-center gap-2">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <span className="text-gray-700">Procesando...</span>
               </div>
             </div>
-          </div>
-          <canvas
-            ref={canvasRef}
-            className="hidden"
-          />
-          <div className="text-center mt-2">
-            <p className="text-sm text-gray-600 mb-2">
-              Apunta la cámara al código QR del aprendiz
-            </p>
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-green-600 font-medium">Escaneando...</span>
+          )}
+          
+          {/* Placeholder cuando no se está escaneando */}
+          {!isScanning && (
+            <div className="w-full max-w-md mx-auto h-64 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+              <div className="text-center text-gray-500">
+                <FiCamera className="mx-auto h-12 w-12 mb-2" />
+                <p>Haz clic en "Iniciar Escáner" para comenzar</p>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Entrada manual para testing */}
-      <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">🔧 Entrada Manual (Para Pruebas)</h4>
-        <form onSubmit={handleCodigoManual} className="flex gap-2">
-          <input
-            type="text"
-            value={codigoManual}
-            onChange={(e) => setCodigoManual(e.target.value)}
-            placeholder="Pegar código QR aquí (ej: SAA-23-DANNY-HEREDIA-...)"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-          />
-          <button
-            type="submit"
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-          >
-            ✅ Registrar
-          </button>
-        </form>
-        <p className="text-xs text-gray-500 mt-1">
-          Usa esta opción si la cámara no funciona o para pruebas rápidas
-        </p>
-        
-        {/* Botón de prueba con código QR de ejemplo */}
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => {
-              // Código QR de ejemplo del último aprendiz creado
-              const codigoEjemplo = "SAA-24-JOHANA-HEREDIA-1757379010862-a9422c966f9bac74"
-              setCodigoManual(codigoEjemplo)
-            }}
-            className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors"
-          >
-            🧪 Usar código de ejemplo
-          </button>
+          )}
         </div>
       </div>
 
-      {/* Mensajes de error */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-
-      {/* Última asistencia registrada */}
-      {ultimaAsistencia && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h4 className="font-semibold text-green-800 mb-2">Última Asistencia Registrada</h4>
-          <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-green-700">Estudiante:</span>
-              <span className="font-medium text-green-800">
-                {ultimaAsistencia.asistencia.nombre} {ultimaAsistencia.asistencia.apellido}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-green-700">Estado:</span>
-              <SemáforoAsistencia 
-                estado={ultimaAsistencia.estado_determinado as EstadoAsistencia}
-                tamaño="sm"
-              />
-            </div>
-            <div className="flex justify-between">
-              <span className="text-green-700">Hora de registro:</span>
-              <span className="text-green-800">{ultimaAsistencia.hora_registro}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-green-700">Hora de inicio de clase:</span>
-              <span className="text-green-800">{ultimaAsistencia.hora_inicio_clase}</span>
-            </div>
+      {/* Lista de Asistencias Registradas */}
+      {asistenciasRegistradas.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            Asistencias Registradas en esta Sesión
+          </h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {asistenciasRegistradas.map((asistencia) => (
+              <div
+                key={asistencia.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+              >
+                <div className="flex items-center gap-3">
+                  {getEstadoIcon(asistencia.estado)}
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {asistencia.nombre} {asistencia.apellido}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      Registrado a las {asistencia.horaRegistro}
+                    </p>
+                  </div>
+                </div>
+                <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getEstadoColor(asistencia.estado)}`}>
+                  {asistencia.estado.toUpperCase()}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Información del sistema */}
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <h4 className="font-semibold text-blue-800 mb-2">Sistema de Semáforo Automático</h4>
-        <div className="text-sm text-blue-700 space-y-1">
-          <p>🟢 <strong>Verde:</strong> Llegó a tiempo o antes de la hora de inicio</p>
-          <p>🟡 <strong>Amarillo:</strong> Llegó tarde pero dentro de los 15 minutos de tolerancia</p>
-          <p>🔴 <strong>Rojo:</strong> Llegó muy tarde o no se registró asistencia</p>
+      {/* Entrada Manual de Código QR */}
+      <div className="mt-6 p-4 bg-green-50 rounded-lg">
+        <h4 className="font-medium text-green-900 mb-2">🔧 Entrada Manual (si la cámara no funciona):</h4>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Pega aquí el código QR de Lolita o Danny"
+            className="flex-1 p-2 border border-green-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                const input = e.target as HTMLInputElement
+                if (input.value.trim()) {
+                  handleQRCodeScanned(input.value.trim())
+                  input.value = ''
+                }
+              }
+            }}
+          />
+          <button
+            onClick={() => {
+              const input = document.querySelector('input[placeholder*="Pega aquí"]') as HTMLInputElement
+              if (input?.value.trim()) {
+                handleQRCodeScanned(input.value.trim())
+                input.value = ''
+              }
+            }}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+          >
+            Procesar
+          </button>
         </div>
+        <div className="mt-2 text-xs text-green-700">
+          <strong>Códigos de prueba:</strong><br/>
+          Lolita: <code className="bg-green-100 px-1 rounded">SAA-17-LOLITA-TORRES-1758152822558-a776e9b2616f05d3</code><br/>
+          Danny: <code className="bg-green-100 px-1 rounded">SAA-18-DANNY-HEREDIA-1758152866478-56c42ec35483deb2</code>
+        </div>
+      </div>
+
+      {/* Instrucciones */}
+      <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+        <h4 className="font-medium text-blue-900 mb-2">Instrucciones:</h4>
+        <ul className="text-sm text-blue-800 space-y-1">
+          <li>• Asegúrate de que la cámara tenga permisos</li>
+          <li>• Mantén el código QR centrado en el marco</li>
+          <li>• El sistema determinará automáticamente si es presente, tardanza o ausente</li>
+          <li>• Los códigos QR de Danny y Lolita ya están configurados</li>
+          <li>• Si la cámara no funciona, usa la entrada manual arriba</li>
+        </ul>
       </div>
     </div>
   )

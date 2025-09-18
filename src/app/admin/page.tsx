@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar'
 import LoadingSpinner from '../../components/LoadingSpinner'
 import ProtectedRoute from '../../components/ProtectedRoute'
 import { useAuth } from '../../providers/AuthProvider'
+import ChatWidget from '../components/ChatWidget'
 import clsx from 'clsx'
 
 /** ---------- Tipos ---------- */
@@ -360,6 +361,12 @@ function AdminPageContent() {
         </main>
       </div>
       </div>
+      
+      {/* Chatbot Asistín */}
+      <ChatWidget 
+        label="Hola, soy Asistín!" 
+        className="fixed bottom-6 right-6 z-40" 
+      />
     </main>
   )
 }

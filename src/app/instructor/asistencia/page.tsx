@@ -6,6 +6,9 @@ import Navbar from '../../components/Navbar'
 import ProtectedRoute from '../../../components/ProtectedRoute'
 import SemáforoAsistencia, { EstadisticasSemáforo, SemáforoTabla } from '../../../components/SemáforoAsistencia'
 import TestQRScannerMejorado from '../../../components/TestQRScannerMejorado'
+import EscánerQRAsistencia from '../../../components/EscánerQRAsistencia'
+import EscánerQRMejorado from '../../../components/EscánerQRMejorado'
+import ChatWidget from '../../components/ChatWidget'
 import { calcularEstadisticasAsistencia, EstadoAsistencia } from '../../../lib/asistencia-utils'
 
 interface Asistencia {
@@ -49,14 +52,18 @@ function GestionAsistenciaContent() {
   const fetchClases = async () => {
     try {
       setLoading(true)
+      console.log('📡 Haciendo petición a /api/clases...')
       const response = await fetch('/api/clases')
       if (response.ok) {
         const data = await response.json()
+        console.log('✅ Clases cargadas:', data.data?.length || 0)
         setClases(data.data || [])
       } else {
+        console.error('❌ Error al cargar clases:', response.status)
         setError('Error al cargar las clases')
       }
-    } catch {
+    } catch (error) {
+      console.error('❌ Error de conexión:', error)
       setError('Error de conexión')
     } finally {
       setLoading(false)
@@ -110,6 +117,7 @@ function GestionAsistenciaContent() {
 
   useEffect(() => {
     // Cargar clases sin verificar permisos para pruebas
+    console.log('🔍 Cargando clases...')
     fetchClases()
   }, [])
 
@@ -162,6 +170,7 @@ function GestionAsistenciaContent() {
           </div>
         )}
 
+
         {/* Selector de Clase */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">📚 Seleccionar Clase</h2>
@@ -175,7 +184,10 @@ function GestionAsistenciaContent() {
               {clases.map((clase) => (
                 <button
                   key={clase.id_clase}
-                  onClick={() => setClaseSeleccionada(clase.id_clase)}
+                  onClick={() => {
+                    console.log('🎯 Seleccionando clase:', clase.id_clase, clase.nombre_clase)
+                    setClaseSeleccionada(clase.id_clase)
+                  }}
                   className={`p-4 border rounded-lg text-left transition-colors ${
                     claseSeleccionada === clase.id_clase
                       ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
@@ -187,6 +199,7 @@ function GestionAsistenciaContent() {
                   <p className="text-sm text-gray-500">
                     🕐 {clase.hora_inicio} - {clase.hora_fin}
                   </p>
+                  <p className="text-xs text-gray-400 mt-1">ID: {clase.id_clase}</p>
                   {claseSeleccionada === clase.id_clase && (
                     <div className="mt-2 text-xs text-blue-600 font-medium">
                       ✅ Clase seleccionada
@@ -221,15 +234,14 @@ function GestionAsistenciaContent() {
           </div>
         )}
 
-        {/* Test de Escáner QR Mejorado */}
-        <div className="mb-6">
-          <TestQRScannerMejorado />
-        </div>
-
-        {/* Escáner QR Simple */}
+        {/* Escáner QR de Asistencia */}
         {claseSeleccionada && (
           <div className="mb-6">
-            <TestQRScannerMejorado />
+            {console.log('📱 Renderizando escáner QR para clase:', claseSeleccionada)}
+            <EscánerQRMejorado
+              claseSeleccionada={clases.find(c => c.id_clase === claseSeleccionada) || null}
+              onAsistenciaRegistrada={handleAsistenciaRegistrada}
+            />
           </div>
         )}
 
@@ -317,6 +329,12 @@ function GestionAsistenciaContent() {
           </div>
         </div>
       </div>
+      
+      {/* Chatbot Asistín */}
+      <ChatWidget 
+        label="Hola, soy Asistín!" 
+        className="fixed bottom-6 right-6 z-40" 
+      />
     </div>
   )
 }

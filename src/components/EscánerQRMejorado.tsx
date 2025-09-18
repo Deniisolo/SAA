@@ -1,198 +1,277 @@
 'use client'
 
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import QrScanner from 'qr-scanner'
-import SemáforoAsistencia from './SemáforoAsistencia'
-import { EstadoAsistencia } from '../lib/asistencia-utils'
+import { FiCamera, FiX, FiCheck, FiClock, FiUser } from 'react-icons/fi'
 
-interface EscánerQRMejoradoProps {
-  idClase: number
-  onAsistenciaRegistrada: (data: {
-    success: boolean
-    message: string
-    data?: {
-      asistencia: {
-        id_asistencia: number
-        id_usuario: number
-        id_clase: number
-        estado_asistencia: string
-        hora_registro: string | null
-        fecha_registro: Date
-      }
-      estado_determinado: string
-      hora_registro: string
-      hora_inicio_clase: string
-    }
-  }) => void
-  onError: (error: string) => void
+interface AsistenciaRegistrada {
+  id: number
+  nombre: string
+  apellido: string
+  estado: 'presente' | 'tardanza' | 'ausente'
+  horaRegistro: string
+  horaInicioClase: string
 }
 
-export default function EscánerQRMejorado({ 
-  idClase, 
-  onAsistenciaRegistrada, 
-  onError 
-}: EscánerQRMejoradoProps) {
-  const [isScanning, setIsScanning] = useState(false)
-  const [ultimaAsistencia, setUltimaAsistencia] = useState<{
-    asistencia: {
-      id_asistencia: number
-      id_usuario: number
-      id_clase: number
-      estado_asistencia: string
-      hora_registro: string | null
-      fecha_registro: Date
-      nombre: string
-      apellido: string
-    }
-    estado_determinado: string
-    hora_registro: string
-    hora_inicio_clase: string
-  } | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [codigoManual, setCodigoManual] = useState('')
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const qrScannerRef = useRef<QrScanner | null>(null)
+interface EscánerQRMejoradoProps {
+  claseSeleccionada: {
+    id_clase: number
+    nombre_clase: string
+    hora_inicio: string
+  } | null
+  onAsistenciaRegistrada: (asistencia: AsistenciaRegistrada) => void
+}
 
-  const iniciarEscáner = async () => {
+export default function EscánerQRMejorado({ claseSeleccionada, onAsistenciaRegistrada }: EscánerQRMejoradoProps) {
+  const [isScanning, setIsScanning] = useState(false)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [asistenciasRegistradas, setAsistenciasRegistradas] = useState<AsistenciaRegistrada[]>([])
+  const [qrScanner, setQrScanner] = useState<QrScanner | null>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [manualQRCode, setManualQRCode] = useState('')
+  const [notificacion, setNotificacion] = useState<{ tipo: 'success' | 'error' | 'info', mensaje: string } | null>(null)
+
+  const mostrarNotificacion = (tipo: 'success' | 'error' | 'info', mensaje: string) => {
+    setNotificacion({ tipo, mensaje })
+    setTimeout(() => setNotificacion(null), 3000) // Auto-ocultar después de 3 segundos
+  }
+
+  const stopScanning = () => {
+    if (qrScanner) {
+      qrScanner.stop()
+      qrScanner.destroy()
+      setQrScanner(null)
+    }
+    setIsScanning(false)
+  }
+
+  const startScanning = async () => {
     try {
-      setError(null)
+      console.log('🚀 Iniciando escáner QR mejorado...')
       setIsScanning(true)
 
-      // Esperar un poco para asegurar que el video esté renderizado
-      await new Promise(resolve => setTimeout(resolve, 100))
-
-      if (!videoRef.current) {
-        throw new Error('Elemento de video no disponible. Intenta recargar la página.')
-      }
-
-      console.log('Creando instancia de QrScanner...')
-
-      // Crear instancia de QrScanner
-      qrScannerRef.current = new QrScanner(
-        videoRef.current,
-        (result) => {
-          console.log('🎯 QR detectado con qr-scanner:', result.data)
-          procesarCodigoQR(result.data)
-        },
-        {
-          highlightScanRegion: true,
-          highlightCodeOutline: true,
-          preferredCamera: 'environment'
+      // Esperar a que el DOM se actualice
+      setTimeout(async () => {
+        if (!videoRef.current) {
+          console.error('Elemento video no encontrado después del timeout')
+          setIsScanning(false)
+          return
         }
-      )
 
-      console.log('Iniciando escáner...')
-      // Iniciar el escáner
-      await qrScannerRef.current.start()
-      console.log('✅ Escáner QR iniciado correctamente')
+        try {
+          // Crear nueva instancia del escáner
+          const scanner = new QrScanner(
+            videoRef.current,
+            (result) => {
+              console.log('Código QR escaneado:', result.data)
+              handleQRCodeScanned(result.data)
+            },
+            {
+              highlightScanRegion: true,
+              highlightCodeOutline: true,
+              maxScansPerSecond: 5,
+            }
+          )
 
-    } catch (err) {
-      console.error('❌ Error al iniciar escáner:', err)
-      setError(`Error: ${err instanceof Error ? err.message : 'Error desconocido'}`)
+          // Iniciar el escáner
+          await scanner.start()
+          setQrScanner(scanner)
+          console.log('✅ Escáner QR mejorado iniciado correctamente')
+
+        } catch (error) {
+          console.error('Error al iniciar el escáner:', error)
+          setIsScanning(false)
+        }
+      }, 100) // Pequeño delay para asegurar que el DOM se actualice
+
+    } catch (error) {
+      console.error('Error al iniciar el escáner:', error)
       setIsScanning(false)
     }
   }
 
-  const detenerEscáner = () => {
-    setIsScanning(false)
-    if (qrScannerRef.current) {
-      qrScannerRef.current.stop()
-      qrScannerRef.current.destroy()
-      qrScannerRef.current = null
-    }
-  }
+  const handleQRCodeScanned = async (qrCode: string) => {
+    if (isProcessing || !claseSeleccionada) return
 
-  const procesarCodigoQR = async (codigoQR: string) => {
+    setIsProcessing(true)
+    console.log('Procesando código QR:', qrCode)
+
     try {
-      // Detener el escáner temporalmente
-      detenerEscáner()
+      console.log('📤 Enviando solicitud a:', '/api/asistencias')
+      console.log('📤 Datos a enviar:', {
+        codigo_qr: qrCode,
+        id_clase: claseSeleccionada.id_clase,
+      })
       
-      console.log('Procesando código QR:', codigoQR)
-      
-      // Validar formato del código QR
-      if (!codigoQR.startsWith('SAA-')) {
-        setError('Código QR inválido. Debe ser un código del sistema SAA.')
-        onError('Código QR inválido')
-        return
-      }
-
       const response = await fetch('/api/asistencias', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          codigo_qr: codigoQR,
-          id_clase: idClase
-        })
+          codigo_qr: qrCode,
+          id_clase: claseSeleccionada.id_clase,
+        }),
+      })
+      
+      console.log('📡 Response recibida:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
       })
 
-      const data = await response.json()
-      console.log('Respuesta del servidor:', data)
-
-      if (response.ok && data.status === 'success') {
-        setUltimaAsistencia(data.data)
-        onAsistenciaRegistrada(data.data)
-        setError(null)
+      let data
+      try {
+        const responseText = await response.text()
+        console.log('📡 Response Text (raw):', responseText)
         
-        // Mostrar mensaje de éxito temporal
-        setTimeout(() => {
-          setUltimaAsistencia(null)
-        }, 5000)
-      } else {
-        setError(data.error || 'Error al registrar asistencia')
-        onError(data.error || 'Error al registrar asistencia')
+        if (responseText.trim() === '') {
+          console.error('❌ Respuesta vacía del servidor')
+          mostrarNotificacion('error', '❌ El servidor devolvió una respuesta vacía')
+          return
+        }
+        
+        data = JSON.parse(responseText)
+        console.log('📡 Respuesta de la API (parsed):', { status: response.status, data })
+      } catch (jsonError) {
+        console.error('❌ Error al parsear JSON:', jsonError)
+        console.log('📡 Response status:', response.status)
+        console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()))
+        mostrarNotificacion('error', '❌ Error al procesar respuesta del servidor')
+        return
       }
-    } catch (err) {
-      console.error('Error al procesar código QR:', err)
-      const errorMsg = 'Error de conexión al registrar asistencia'
-      setError(errorMsg)
-      onError(errorMsg)
+
+      if (response.ok) {
+        // Validar que los datos estén presentes
+        if (!data || !data.data || !data.data.usuario) {
+          console.error('Datos incompletos en la respuesta:', data)
+          mostrarNotificacion('error', '❌ Datos incompletos en la respuesta del servidor')
+          return
+        }
+
+        const nuevaAsistencia: AsistenciaRegistrada = {
+          id: Date.now(),
+          nombre: data.data.usuario.nombre,
+          apellido: data.data.usuario.apellido,
+          estado: data.data.estado_determinado,
+          horaRegistro: data.data.hora_registro,
+          horaInicioClase: data.data.hora_inicio_clase,
+        }
+
+        setAsistenciasRegistradas(prev => [nuevaAsistencia, ...prev])
+        onAsistenciaRegistrada(nuevaAsistencia)
+
+        console.log('✅ Asistencia registrada:', nuevaAsistencia)
+        mostrarNotificacion('success', `✅ ${nuevaAsistencia.nombre} ${nuevaAsistencia.apellido} - ${nuevaAsistencia.estado.toUpperCase()}`)
+      } else {
+        console.error('Error al registrar asistencia:', data)
+        
+        // Manejar casos donde data esté vacío o no tenga la estructura esperada
+        let errorMessage = 'Error desconocido'
+        
+        if (data && typeof data === 'object') {
+          errorMessage = data.error || data.message || 'Error desconocido'
+        } else if (response.status === 400) {
+          errorMessage = 'Error en la solicitud (código 400)'
+        } else if (response.status === 404) {
+          errorMessage = 'Usuario o clase no encontrados'
+        } else if (response.status === 500) {
+          errorMessage = 'Error interno del servidor'
+        }
+        
+        // Mostrar mensaje más amigable para asistencias duplicadas
+        if (errorMessage.includes('Ya se registró la asistencia')) {
+          console.log('ℹ️ Asistencia ya registrada - esto es normal')
+          mostrarNotificacion('info', 'ℹ️ Esta asistencia ya fue registrada anteriormente')
+        } else {
+          mostrarNotificacion('error', `❌ ${errorMessage}`)
+        }
+      }
+    } catch (error) {
+      console.error('Error de conexión:', error)
+      mostrarNotificacion('error', '❌ Error de conexión al registrar asistencia')
+    } finally {
+      setIsProcessing(false)
     }
   }
 
-  const handleCodigoManual = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (codigoManual.trim()) {
-      procesarCodigoQR(codigoManual.trim())
-      setCodigoManual('')
+  const procesarCodigoManual = () => {
+    if (manualQRCode.trim()) {
+      handleQRCodeScanned(manualQRCode.trim())
+      setManualQRCode('')
     }
   }
 
+  const getEstadoColor = (estado: string) => {
+    switch (estado) {
+      case 'presente': return 'text-green-600 bg-green-100'
+      case 'tardanza': return 'text-yellow-600 bg-yellow-100'
+      case 'ausente': return 'text-red-600 bg-red-100'
+      default: return 'text-gray-600 bg-gray-100'
+    }
+  }
+
+  const getEstadoIcono = (estado: string) => {
+    switch (estado) {
+      case 'presente': return <FiCheck className="text-green-600" />
+      case 'tardanza': return <FiClock className="text-yellow-600" />
+      case 'ausente': return <FiX className="text-red-600" />
+      default: return <FiUser className="text-gray-600" />
+    }
+  }
+
+  // Limpiar el escáner cuando el componente se desmonte
   useEffect(() => {
     return () => {
-      detenerEscáner()
+      if (qrScanner) {
+        qrScanner.stop()
+        qrScanner.destroy()
+      }
     }
-  }, [])
+  }, [qrScanner])
+
+  if (!claseSeleccionada) {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <p className="text-yellow-800 text-center">
+          Selecciona una clase para iniciar el escáner QR
+        </p>
+      </div>
+    )
+  }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">📱 Escáner QR Mejorado</h3>
-        <div className="flex items-center gap-2">
-          <div className={`w-3 h-3 rounded-full ${isScanning ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
-          <span className="text-sm text-gray-600">
-            {isScanning ? 'Escaneando...' : 'Detenido'}
-          </span>
-        </div>
+    <div className="space-y-4">
+      {/* Información de la clase */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <h3 className="text-lg font-semibold text-blue-900">
+          Clase: {claseSeleccionada.nombre_clase}
+        </h3>
+        <p className="text-blue-700">
+          Hora de inicio: {claseSeleccionada.hora_inicio}
+        </p>
       </div>
-      
+
       {/* Controles del escáner */}
-      <div className="mb-4">
+      <div className="flex gap-2 flex-wrap">
         {!isScanning ? (
-          <button
-            onClick={iniciarEscáner}
-            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
-          >
-            <span>📷</span>
-            Iniciar Escáner QR
-          </button>
+          <>
+            <button
+              onClick={startScanning}
+              disabled={isProcessing}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <FiCamera />
+              Iniciar Escáner QR
+            </button>
+          </>
         ) : (
           <button
-            onClick={detenerEscáner}
-            className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+            onClick={stopScanning}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
           >
-            <span>⏹️</span>
+            <FiX />
             Detener Escáner
           </button>
         )}
@@ -200,110 +279,101 @@ export default function EscánerQRMejorado({
 
       {/* Video del escáner */}
       {isScanning && (
-        <div className="mb-4">
-          <div className="relative w-full max-w-md mx-auto">
-            <video
-              ref={videoRef}
-              className="w-full rounded-lg border-2 border-blue-300"
-              playsInline
-              muted
-            />
-          </div>
-          <div className="text-center mt-2">
-            <p className="text-sm text-gray-600 mb-2">
-              Apunta la cámara al código QR del aprendiz
-            </p>
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-              <span className="text-xs text-green-600 font-medium">Escaneando...</span>
-            </div>
+        <div className="relative">
+          <video
+            ref={videoRef}
+            className="w-full max-w-md mx-auto rounded-lg border-2 border-blue-300"
+            style={{ height: '300px' }}
+          />
+          <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-sm">
+            Escaneando códigos QR...
           </div>
         </div>
       )}
 
-      {/* Entrada manual para testing */}
-      <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-        <h4 className="text-sm font-medium text-gray-700 mb-2">🔧 Entrada Manual (Para Pruebas)</h4>
-        <form onSubmit={handleCodigoManual} className="flex gap-2">
+      {/* Entrada manual */}
+      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+        <h4 className="text-sm font-medium text-gray-700 mb-2">
+          Entrada Manual (para pruebas)
+        </h4>
+        <div className="flex gap-2">
           <input
             type="text"
-            value={codigoManual}
-            onChange={(e) => setCodigoManual(e.target.value)}
-            placeholder="Pegar código QR aquí (ej: SAA-23-DANNY-HEREDIA-...)"
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            value={manualQRCode}
+            onChange={(e) => setManualQRCode(e.target.value)}
+            placeholder="Pega aquí el código QR"
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onKeyPress={(e) => e.key === 'Enter' && procesarCodigoManual()}
           />
           <button
-            type="submit"
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+            onClick={procesarCodigoManual}
+            disabled={!manualQRCode.trim() || isProcessing}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            ✅ Registrar
-          </button>
-        </form>
-        <p className="text-xs text-gray-500 mt-1">
-          Usa esta opción si la cámara no funciona o para pruebas rápidas
-        </p>
-        
-        {/* Botón de prueba con código QR de ejemplo */}
-        <div className="mt-3">
-          <button
-            type="button"
-            onClick={() => {
-              const codigoEjemplo = "SAA-24-JOHANA-HEREDIA-1757379010862-a9422c966f9bac74"
-              setCodigoManual(codigoEjemplo)
-            }}
-            className="px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors"
-          >
-            🧪 Usar código de ejemplo
+            Procesar
           </button>
         </div>
       </div>
 
-      {/* Mensajes de error */}
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-          {error}
-        </div>
-      )}
-
-      {/* Última asistencia registrada */}
-      {ultimaAsistencia && (
-        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-          <h4 className="font-semibold text-green-800 mb-2">✅ Última Asistencia Registrada</h4>
+      {/* Lista de asistencias registradas */}
+      {asistenciasRegistradas.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-lg p-4">
+          <h4 className="text-lg font-semibold text-gray-900 mb-3">
+            Asistencias Registradas ({asistenciasRegistradas.length})
+          </h4>
           <div className="space-y-2">
-            <div className="flex justify-between">
-              <span className="text-green-700">Estudiante:</span>
-              <span className="font-medium text-green-800">
-                {ultimaAsistencia.asistencia.nombre} {ultimaAsistencia.asistencia.apellido}
-              </span>
-            </div>
-            <div className="flex justify-between items-center">
-              <span className="text-green-700">Estado:</span>
-              <SemáforoAsistencia 
-                estado={ultimaAsistencia.estado_determinado as EstadoAsistencia}
-                tamaño="sm"
-              />
-            </div>
-            <div className="flex justify-between">
-              <span className="text-green-700">Hora de registro:</span>
-              <span className="text-green-800">{ultimaAsistencia.hora_registro}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-green-700">Hora de inicio de clase:</span>
-              <span className="text-green-800">{ultimaAsistencia.hora_inicio_clase}</span>
-            </div>
+            {asistenciasRegistradas.map((asistencia) => (
+              <div
+                key={asistencia.id}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+              >
+                <div className="flex items-center gap-3">
+                  {getEstadoIcono(asistencia.estado)}
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {asistencia.nombre} {asistencia.apellido}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Registrado: {asistencia.horaRegistro}
+                    </p>
+                  </div>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getEstadoColor(asistencia.estado)}`}>
+                  {asistencia.estado.toUpperCase()}
+                </span>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
-      {/* Información del sistema */}
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <h4 className="font-semibold text-blue-800 mb-2">Sistema de Semáforo Automático</h4>
-        <div className="text-sm text-blue-700 space-y-1">
-          <p>🟢 <strong>Verde:</strong> Llegó a tiempo o antes de la hora de inicio</p>
-          <p>🟡 <strong>Amarillo:</strong> Llegó tarde pero dentro de los 15 minutos de tolerancia</p>
-          <p>🔴 <strong>Rojo:</strong> Llegó muy tarde o no se registró asistencia</p>
+      {/* Estado de procesamiento */}
+      {isProcessing && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-800 text-center">
+            Procesando código QR...
+          </p>
         </div>
-      </div>
+      )}
+
+      {/* Notificaciones */}
+      {notificacion && (
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+          notificacion.tipo === 'success' ? 'bg-green-100 border border-green-300 text-green-800' :
+          notificacion.tipo === 'error' ? 'bg-red-100 border border-red-300 text-red-800' :
+          'bg-blue-100 border border-blue-300 text-blue-800'
+        }`}>
+          <div className="flex items-center justify-between">
+            <p className="font-medium">{notificacion.mensaje}</p>
+            <button
+              onClick={() => setNotificacion(null)}
+              className="ml-2 text-gray-500 hover:text-gray-700"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, memo, useMemo } from 'react'
 import { useAuth } from '../../../providers/AuthProvider'
 import Navbar from '../../components/Navbar'
 import { GenericDataTable, Column } from '../../components/DataTable'
+import ChatWidget from '../../components/ChatWidget'
 
 interface Usuario {
   id_usuario: number
@@ -781,6 +782,12 @@ export default function GestionUsuarios() {
           )}
         </Modal>
       </div>
+      
+      {/* Chatbot Asistín */}
+      <ChatWidget 
+        label="Hola, soy Asistín!" 
+        className="fixed bottom-6 right-6 z-40" 
+      />
     </div>
   )
 }

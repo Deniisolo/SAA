@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../../providers/AuthProvider'
 import Navbar from '../../components/Navbar'
 import { GenericDataTable, Column } from '../../components/DataTable'
+import ChatWidget from '../../components/ChatWidget'
 import { FiX } from 'react-icons/fi'
 
 interface Competencia {
@@ -339,6 +340,12 @@ export default function GestionCompetencias() {
           </div>
         </div>
       )}
+      
+      {/* Chatbot Asistín */}
+      <ChatWidget 
+        label="Hola, soy Asistín!" 
+        className="fixed bottom-6 right-6 z-40" 
+      />
     </div>
   )
 }

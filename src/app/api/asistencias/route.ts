@@ -81,11 +81,12 @@ export async function POST(request: NextRequest) {
 
     const claseData = (clase as Array<{
       id_clase: number
-      id_ficha: number
+      nombre_clase: string
+      descripcion: string
       fecha_clase: Date
       hora_inicio: string
       hora_fin: string
-      tema: string
+      id_competencia: number
       id_instructor: number
     }>)[0]
 
@@ -146,18 +147,39 @@ export async function POST(request: NextRequest) {
       AND a.id_clase = ${parseInt(id_clase)}
     `
 
+    const asistenciaData = (asistenciaCreada as Array<{
+      id_asistencia: number
+      id_usuario: number
+      id_clase: number
+      estado_asistencia: string
+      hora_registro: string | null
+      fecha_registro: Date
+      nombre: string
+      apellido: string
+      numero_documento: string
+      nombre_clase: string
+      hora_inicio: string
+      hora_fin: string
+      nombre_competencia: string
+    }>)[0]
+
     return NextResponse.json({
       success: true,
       message: `Asistencia registrada como: ${estadoAsistencia}`,
       data: {
-        asistencia: (asistenciaCreada as Array<{
-          id_asistencia: number
-          id_usuario: number
-          id_clase: number
-          estado_asistencia: string
-          hora_registro: string | null
-          fecha_registro: Date
-        }>)[0],
+        asistencia: {
+          id_asistencia: asistenciaData.id_asistencia,
+          id_usuario: asistenciaData.id_usuario,
+          id_clase: asistenciaData.id_clase,
+          estado_asistencia: asistenciaData.estado_asistencia,
+          hora_registro: asistenciaData.hora_registro,
+          fecha_registro: asistenciaData.fecha_registro
+        },
+        usuario: {
+          nombre: asistenciaData.nombre,
+          apellido: asistenciaData.apellido,
+          numero_documento: asistenciaData.numero_documento
+        },
         estado_determinado: estadoAsistencia,
         hora_registro: horaRegistroFinal,
         hora_inicio_clase: claseData.hora_inicio

@@ -5,6 +5,7 @@ import { useAuth } from '../../../providers/AuthProvider'
 import Navbar from '../../components/Navbar'
 import ProtectedRoute from '../../../components/ProtectedRoute'
 import { GenericDataTable, Column } from '../../components/DataTable'
+import ChatWidget from '../../components/ChatWidget'
 import { FiX, FiPlus } from 'react-icons/fi'
 
 interface Ficha {
@@ -328,6 +329,12 @@ function GestionFichasContent() {
           </div>
         </div>
       )}
+      
+      {/* Chatbot Asistín */}
+      <ChatWidget 
+        label="Hola, soy Asistín!" 
+        className="fixed bottom-6 right-6 z-40" 
+      />
     </div>
   )
 }

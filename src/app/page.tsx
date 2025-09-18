@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from 'react'
 import SemáforoAsistencia from '../components/SemáforoAsistencia'
 import Navbar from './components/Navbar'
 import { EstadoAsistencia } from '../lib/asistencia-utils'
+import EstadisticasAprendices from '../components/EstadisticasAprendices'
+import ChatWidget from './components/ChatWidget'
 
 interface Competencia {
   id_competencia: number
@@ -338,7 +340,18 @@ export default function HomePage() {
             </div>
           )}
         </div>
+
+        {/* Sección de Estadísticas */}
+        <div className="mt-8">
+          <EstadisticasAprendices asistencias={asistencias} />
+        </div>
       </main>
+
+      {/* Chatbot Asistín */}
+      <ChatWidget 
+        label="Hola, soy Asistín!" 
+        className="fixed bottom-6 right-6 z-40" 
+      />
     </div>
   )
 }
