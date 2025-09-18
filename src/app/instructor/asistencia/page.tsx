@@ -72,18 +72,25 @@ function GestionAsistenciaContent() {
 
   const fetchAsistencias = async (idClase: number) => {
     try {
+      console.log('📡 Cargando asistencias para clase:', idClase)
       const response = await fetch(`/api/asistencias/clase/${idClase}`)
+      console.log('📡 Response status:', response.status)
+      
       if (response.ok) {
         const data = await response.json()
+        console.log('📡 Asistencias cargadas:', data)
         setAsistencias(data.data || [])
         
         // Calcular estadísticas
         const stats = calcularEstadisticasAsistencia(data.data || [])
         setEstadisticas(stats)
+        setError(null) // Limpiar errores previos
       } else {
+        console.error('❌ Error en respuesta:', response.status, response.statusText)
         setError('Error al cargar las asistencias')
       }
-    } catch {
+    } catch (error) {
+      console.error('❌ Error de conexión:', error)
       setError('Error de conexión')
     }
   }
@@ -117,15 +124,26 @@ function GestionAsistenciaContent() {
 
   useEffect(() => {
     // Cargar clases sin verificar permisos para pruebas
-    console.log('🔍 Cargando clases...')
+    console.log('🔍 useEffect: Cargando clases...')
     fetchClases()
   }, [])
 
   useEffect(() => {
+    console.log('🔍 useEffect: claseSeleccionada cambió a:', claseSeleccionada)
     if (claseSeleccionada) {
       fetchAsistencias(claseSeleccionada)
     }
   }, [claseSeleccionada])
+
+  // Log del estado de clases
+  useEffect(() => {
+    console.log('🔍 Estado de clases actualizado:', {
+      clases: clases.length,
+      loading,
+      error,
+      claseSeleccionada
+    })
+  }, [clases, loading, error, claseSeleccionada])
 
   // Comentar verificación de permisos temporalmente para pruebas
   // if (!hasRole(['instructor'])) {
@@ -166,7 +184,19 @@ function GestionAsistenciaContent() {
 
         {error && (
           <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
-            {error}
+            <div className="flex items-center justify-between">
+              <span>{error}</span>
+              <button
+                onClick={() => {
+                  if (claseSeleccionada) {
+                    fetchAsistencias(claseSeleccionada)
+                  }
+                }}
+                className="ml-4 px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+              >
+                Reintentar
+              </button>
+            </div>
           </div>
         )}
 
