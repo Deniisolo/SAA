@@ -7,11 +7,14 @@ import { EstadoAsistencia } from '../lib/asistencia-utils'
 import EstadisticasAprendices from '../components/EstadisticasAprendices'
 import ChatWidget from './components/ChatWidget'
 
-interface Competencia {
+interface ClaseItem {
+  id_clase: number
+  nombre_clase: string
+  fecha_clase: string
+  hora_inicio: string
+  hora_fin: string
   id_competencia: number
   nombre_competencia: string
-  codigo_competencia: string
-  total_clases: number
 }
 
 interface Asistencia {
@@ -34,28 +37,28 @@ interface Asistencia {
 }
 
 export default function HomePage() {
-  const [competencias, setCompetencias] = useState<Competencia[]>([])
+  const [clases, setClases] = useState<ClaseItem[]>([])
   const [asistencias, setAsistencias] = useState<Asistencia[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
   // Filtros
-  const [competenciaSeleccionada, setCompetenciaSeleccionada] = useState<string>('')
+  const [claseSeleccionada, setClaseSeleccionada] = useState<string>('')
   const [fechaSeleccionada, setFechaSeleccionada] = useState<string>('')
 
-  // Cargar competencias disponibles
-  const cargarCompetencias = async () => {
+  // Cargar clases disponibles
+  const cargarClases = async () => {
     try {
-      const response = await fetch('/api/competencias-disponibles')
+      const response = await fetch('/api/clases-disponibles')
       const data = await response.json()
       
       if (response.ok) {
-        setCompetencias(data.data || [])
+        setClases(data.data || [])
       } else {
-        setError('Error al cargar las competencias')
+        setError('Error al cargar las clases')
       }
     } catch {
-      setError('Error de conexión al cargar competencias')
+      setError('Error de conexión al cargar clases')
     }
   }
 
@@ -66,8 +69,8 @@ export default function HomePage() {
       setError(null)
       
       const params = new URLSearchParams()
-      if (competenciaSeleccionada) {
-        params.append('competencia', competenciaSeleccionada)
+      if (claseSeleccionada) {
+        params.append('clase', claseSeleccionada)
       }
       if (fechaSeleccionada) {
         params.append('fecha', fechaSeleccionada)
@@ -86,11 +89,11 @@ export default function HomePage() {
     } finally {
       setLoading(false)
     }
-  }, [competenciaSeleccionada, fechaSeleccionada])
+  }, [claseSeleccionada, fechaSeleccionada])
 
   // Efectos
   useEffect(() => {
-    cargarCompetencias()
+    cargarClases()
   }, [])
 
   useEffect(() => {
@@ -130,17 +133,17 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Competencia
+                Clase
               </label>
               <select
-                value={competenciaSeleccionada}
-                onChange={(e) => setCompetenciaSeleccionada(e.target.value)}
+                value={claseSeleccionada}
+                onChange={(e) => setClaseSeleccionada(e.target.value)}
                 className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="">Todas las competencias</option>
-                {competencias.map((comp) => (
-                  <option key={comp.id_competencia} value={comp.id_competencia}>
-                    {comp.nombre_competencia} ({comp.codigo_competencia})
+                <option value="">Todas las clases</option>
+                {clases.map((c) => (
+                  <option key={c.id_clase} value={c.id_clase.toString()}>
+                    {c.nombre_clase} ({c.hora_inicio}-{c.hora_fin})
                   </option>
                 ))}
               </select>

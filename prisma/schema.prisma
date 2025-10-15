@@ -13,8 +13,8 @@ datasource db {
 // Tipo de Documento
 model TipoDocumento {
   id_Tipo_Documento    Int      @id @default(autoincrement())
-  nombre_documento     String   @db.VarChar(45)
-  TipoDocumentocol     String   @db.VarChar(45)
+  nombre_documento     String
+  TipoDocumentocol     String
   
   // Relaciones
   usuarios             Usuario[]
@@ -25,7 +25,7 @@ model TipoDocumento {
 // Rol
 model Rol {
   id_Rol               Int      @id @default(autoincrement())
-  nombre_rol           String   @db.VarChar(45)
+  nombre_rol           String
   
   // Relaciones
   usuarios             Usuario[]
@@ -36,7 +36,7 @@ model Rol {
 // Estado del Estudiante
 model EstadoEstudiante {
   id_estado_estudiante     Int      @id @default(autoincrement())
-  descripcion_estado       String   @db.VarChar(45)
+  descripcion_estado       String
   
   // Relaciones
   usuarios                 Usuario[]
@@ -47,7 +47,7 @@ model EstadoEstudiante {
 // Género
 model Genero {
   id_genero            Int      @id @default(autoincrement())
-  descripcion          String   @db.VarChar(45)
+  descripcion          String
   
   // Relaciones
   usuarios             Usuario[]
@@ -58,8 +58,8 @@ model Genero {
 // Programa de Formación
 model ProgramaFormacion {
   idPrograma_formacion     Int      @id @default(autoincrement())
-  nombre_programa          String   @db.VarChar(45)
-  nivel_formacion          String   @db.VarChar(45)
+  nombre_programa          String
+  nivel_formacion          String
   
   // Relaciones
   usuarios                 Usuario[]
@@ -70,7 +70,7 @@ model ProgramaFormacion {
 
 // Nivel de Formación
 model NivelFormacion {
-  Id_Nivel_de_formacioncol     String   @id @db.VarChar(45)
+  Id_Nivel_de_formacioncol     String   @id
   
   // Relaciones
   usuarios                     Usuario[]
@@ -81,7 +81,7 @@ model NivelFormacion {
 // Ficha
 model Ficha {
   id_ficha                 Int      @id @default(autoincrement())
-  numero_ficha             String   @db.VarChar(45)
+  numero_ficha             String
   id_programa_formacion    Int
   
   // Relaciones
@@ -95,9 +95,9 @@ model Ficha {
 // Competencia
 model Competencia {
   id_competencia           Int      @id @default(autoincrement())
-  nombre_competencia       String   @db.VarChar(100)
-  descripcion              String?  @db.Text
-  codigo_competencia       String   @db.VarChar(20)
+  nombre_competencia       String
+  descripcion              String?
+  codigo_competencia       String
   
   // Relaciones
   competencias_ficha       CompetenciaFicha[]
@@ -123,11 +123,11 @@ model CompetenciaFicha {
 // Clase
 model Clase {
   id_clase                 Int      @id @default(autoincrement())
-  nombre_clase             String   @db.VarChar(100)
-  descripcion              String?  @db.Text
+  nombre_clase             String
+  descripcion              String?
   fecha_clase              DateTime
-  hora_inicio              String   @db.VarChar(10)
-  hora_fin                 String   @db.VarChar(10)
+  hora_inicio              String
+  hora_fin                 String
   id_competencia           Int
   id_instructor            Int
   
@@ -143,10 +143,10 @@ model Clase {
 model Asistencia {
   id_asistencia            Int      @id @default(autoincrement())
   fecha_asistencia         DateTime @default(now())
-  hora_registro            String?  @db.VarChar(10) // Hora de llegada (HH:MM)
+  hora_registro            String?  // Hora de llegada (HH:MM)
   id_usuario               Int
   id_clase                 Int
-  estado_asistencia        String   @db.VarChar(20) // "presente", "ausente", "tardanza"
+  estado_asistencia        String   // "presente", "ausente", "tardanza"
   
   // Relaciones
   usuario                  Usuario @relation(fields: [id_usuario], references: [id_usuario])
@@ -159,21 +159,21 @@ model Asistencia {
 // Usuario (tabla principal)
 model Usuario {
   id_usuario                                    Int      @id @default(autoincrement())
-  nombre                                        String   @db.VarChar(45)
-  apellido                                      String   @db.VarChar(45)
-  correo_electronico                            String   @db.VarChar(45)
-  telefono                                      String   @db.VarChar(45)
-  numero_documento                              String   @db.VarChar(45)
-  usemame                                       String   @db.VarChar(45) // username (con typo del diagrama)
-  Contrasenia                                   String   @db.VarChar(45) // Contraseña
-  codigo_qr                                     String?  @db.VarChar(255) // Código QR único para identificación
+  nombre                                        String
+  apellido                                      String
+  correo_electronico                            String
+  telefono                                      String
+  numero_documento                              String
+  usemame                                       String // username (con typo del diagrama)
+  Contrasenia                                   String // Contraseña
+  codigo_qr                                     String? // Código QR único para identificación
   Rol_id_Rol                                    Int
   TipoDocumento_id_Tipo_Documento               Int
   EstadoEstudiante_id_estado_estudiante         Int
   Ficha_id_ficha                                Int
   Genero_id_genero                              Int
   Programa_formacion_idPrograma_formacion       Int
-  Nivel_de_formacion_Id_Nivel_de_formacioncol   String   @db.VarChar(45)
+  Nivel_de_formacion_Id_Nivel_de_formacioncol   String
   
   // Relaciones
   rol                                           Rol      @relation(fields: [Rol_id_Rol], references: [id_Rol])
