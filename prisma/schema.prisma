@@ -134,9 +134,25 @@ model Clase {
   // Relaciones
   competencia              Competencia @relation(fields: [id_competencia], references: [id_competencia])
   instructor               Usuario @relation("InstructorClases", fields: [id_instructor], references: [id_usuario])
+  estudiantes              EstudianteClase[]
   asistencias              Asistencia[]
   
   @@map("clase")
+}
+
+// EstudianteClase (tabla intermedia para asociar estudiantes a múltiples clases)
+model EstudianteClase {
+  id_estudiante_clase      Int      @id @default(autoincrement())
+  id_usuario               Int
+  id_clase                 Int
+  fecha_asociacion         DateTime @default(now())
+  
+  // Relaciones
+  usuario                  Usuario @relation(fields: [id_usuario], references: [id_usuario])
+  clase                    Clase @relation(fields: [id_clase], references: [id_clase])
+  
+  @@unique([id_usuario, id_clase])
+  @@map("estudiante_clase")
 }
 
 // Asistencia
@@ -184,6 +200,7 @@ model Usuario {
   programa_formacion                            ProgramaFormacion @relation(fields: [Programa_formacion_idPrograma_formacion], references: [idPrograma_formacion])
   nivel_formacion                               NivelFormacion @relation(fields: [Nivel_de_formacion_Id_Nivel_de_formacioncol], references: [Id_Nivel_de_formacioncol])
   clases_instructor                             Clase[]  @relation("InstructorClases")
+  clases_estudiante                             EstudianteClase[]
   asistencias                                   Asistencia[]
   
   @@map("usuario")

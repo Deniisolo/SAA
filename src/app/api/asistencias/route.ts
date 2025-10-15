@@ -45,6 +45,8 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
     const { codigo_qr, id_clase, hora_registro } = body
+    
+    console.log('📥 POST /api/asistencias - Datos recibidos:', { codigo_qr, id_clase, hora_registro })
 
     // Validar campos requeridos
     if (!codigo_qr || !id_clase) {
@@ -89,6 +91,21 @@ export async function POST(request: NextRequest) {
       id_competencia: number
       id_instructor: number
     }>)[0]
+
+    // Verificar si el estudiante está asociado a esta clase (temporalmente deshabilitado)
+    // const estudianteClase = await prisma.estudianteClase.findFirst({
+    //   where: {
+    //     id_usuario: usuario.id_usuario,
+    //     id_clase: parseInt(id_clase)
+    //   }
+    // })
+
+    // if (!estudianteClase) {
+    //   return NextResponse.json(
+    //     { success: false, error: 'El estudiante no está asociado a esta clase' },
+    //     { status: 400 }
+    //   )
+    // }
 
     // Verificar si ya existe una asistencia para este usuario en esta clase
     const asistenciaExistente = await prisma.$queryRaw`
@@ -163,7 +180,7 @@ export async function POST(request: NextRequest) {
       nombre_competencia: string
     }>)[0]
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       message: `Asistencia registrada como: ${estadoAsistencia}`,
       data: {
@@ -184,7 +201,11 @@ export async function POST(request: NextRequest) {
         hora_registro: horaRegistroFinal,
         hora_inicio_clase: claseData.hora_inicio
       }
-    })
+    }
+    
+    console.log('📤 POST /api/asistencias - Respuesta enviada:', responseData)
+    
+    return NextResponse.json(responseData)
   } catch (error) {
     console.error('Error al crear asistencia:', error)
     return NextResponse.json(

@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
       genero,
       correo,
       celular,
-      ficha
+      ficha,
+      clasesSeleccionadas = []
     } = body;
 
     // Validaciones básicas
@@ -200,6 +201,26 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Asociar el estudiante a las clases seleccionadas
+    if (clasesSeleccionadas && clasesSeleccionadas.length > 0) {
+      try {
+        const asociaciones = clasesSeleccionadas.map(idClase => ({
+          id_usuario: aprendizConQR.id_usuario,
+          id_clase: idClase
+        }));
+
+        await prisma.estudianteClase.createMany({
+          data: asociaciones,
+          skipDuplicates: true // Evitar duplicados si ya existe la asociación
+        });
+
+        console.log(`Estudiante asociado a ${asociaciones.length} clases`);
+      } catch (error) {
+        console.error('Error al asociar estudiante a clases:', error);
+        // No fallar la creación del usuario por este error
+      }
+    }
+
     // Generar imagen QR y enviar email (en paralelo para mejor rendimiento)
     try {
       await Promise.all([
@@ -234,7 +255,8 @@ export async function POST(request: NextRequest) {
         ficha: aprendizConQR.ficha.numero_ficha,
         programa: aprendizConQR.programa_formacion.nombre_programa,
         rol: aprendizConQR.rol.nombre_rol,
-        codigo_qr: aprendizConQR.codigo_qr
+        codigo_qr: aprendizConQR.codigo_qr,
+        clases_asociadas: clasesSeleccionadas.length
       }
     });
 

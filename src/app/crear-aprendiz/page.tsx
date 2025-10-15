@@ -25,6 +25,7 @@ type Form = {
   correo: string
   celular: string
   ficha: string
+  clasesSeleccionadas: number[]
 }
 
 interface Ficha {
@@ -33,6 +34,24 @@ interface Ficha {
   programa_formacion: {
     nombre_programa: string
   }
+}
+
+interface Clase {
+  id_clase: number
+  nombre_clase: string
+  descripcion: string | null
+  fecha_clase: string
+  hora_inicio: string
+  hora_fin: string
+  competencia: {
+    nombre: string
+    codigo: string
+  }
+  instructor?: {
+    nombre: string
+    apellido: string
+  }
+  total_estudiantes: number
 }
 
 function CrearAprendizPageContent() {
@@ -55,12 +74,15 @@ function CrearAprendizPageContent() {
     correo: '',
     celular: '',
     ficha: '',
+    clasesSeleccionadas: [],
   })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
   const [ok, setOk] = useState(false)
   const [fichas, setFichas] = useState<Ficha[]>([])
   const [loadingFichas, setLoadingFichas] = useState(true)
+  const [clases, setClases] = useState<Clase[]>([])
+  const [loadingClases, setLoadingClases] = useState(true)
 
   const validar = useMemo(
     () => ({
@@ -100,6 +122,25 @@ function CrearAprendizPageContent() {
     }
   }
 
+  // Cargar clases disponibles
+  const cargarClases = async () => {
+    try {
+      setLoadingClases(true)
+      const response = await fetch('/api/clases')
+      const data = await response.json()
+      
+      if (response.ok) {
+        setClases(data.data || [])
+      } else {
+        console.error('Error al cargar clases:', data.error)
+      }
+    } catch (error) {
+      console.error('Error de conexión al cargar clases:', error)
+    } finally {
+      setLoadingClases(false)
+    }
+  }
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
       router.push('/login')
@@ -109,12 +150,33 @@ function CrearAprendizPageContent() {
   useEffect(() => {
     if (isAuthenticated) {
       cargarFichas()
+      cargarClases()
     }
   }, [isAuthenticated])
 
   // FUNCIONES DESPUÉS DE LOS HOOKS
   const set = <K extends keyof Form>(k: K, v: Form[K]) =>
     setForm(prev => ({ ...prev, [k]: v }))
+
+  // Función para manejar la selección de clases
+  const toggleClase = (idClase: number) => {
+    setForm(prev => ({
+      ...prev,
+      clasesSeleccionadas: prev.clasesSeleccionadas.includes(idClase)
+        ? prev.clasesSeleccionadas.filter(id => id !== idClase)
+        : [...prev.clasesSeleccionadas, idClase]
+    }))
+  }
+
+  // Función para seleccionar/deseleccionar todas las clases
+  const toggleTodasLasClases = () => {
+    setForm(prev => ({
+      ...prev,
+      clasesSeleccionadas: prev.clasesSeleccionadas.length === clases.length
+        ? []
+        : clases.map(clase => clase.id_clase)
+    }))
+  }
 
   // RETURNS CONDICIONALES AL FINAL
   if (authLoading) {
@@ -169,6 +231,7 @@ function CrearAprendizPageContent() {
           correo: form.correo,
           celular: form.celular,
           ficha: form.ficha,
+          clasesSeleccionadas: form.clasesSeleccionadas,
         }),
       })
 
@@ -189,6 +252,7 @@ function CrearAprendizPageContent() {
           correo: '',
           celular: '',
           ficha: fichas.length > 0 ? fichas[0].numero_ficha : '',
+          clasesSeleccionadas: [],
         })
         setErrors({}) // Limpiar errores
       } else {
@@ -322,6 +386,68 @@ function CrearAprendizPageContent() {
                   onChange={v => set('celular', v)}
                   placeholder="3001234567"
                 />
+              </Field>
+            </div>
+
+            {/* Sección de selección de clases */}
+            <div className="mt-8">
+              <Field label="Clases a asociar (opcional)">
+                {loadingClases ? (
+                  <div className="h-32 w-full rounded-xl bg-gray-100 flex items-center justify-center">
+                    <span className="text-sm text-gray-500">Cargando clases...</span>
+                  </div>
+                ) : clases.length === 0 ? (
+                  <div className="h-32 w-full rounded-xl bg-gray-100 flex items-center justify-center">
+                    <span className="text-sm text-gray-500">No hay clases disponibles</span>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Botón para seleccionar/deseleccionar todas */}
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">
+                        {form.clasesSeleccionadas.length} de {clases.length} clases seleccionadas
+                      </span>
+                      <button
+                        type="button"
+                        onClick={toggleTodasLasClases}
+                        className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {form.clasesSeleccionadas.length === clases.length ? 'Deseleccionar todas' : 'Seleccionar todas'}
+                      </button>
+                    </div>
+                    
+                    {/* Lista de clases */}
+                    <div className="max-h-48 overflow-y-auto space-y-2 border border-gray-200 rounded-lg p-3">
+                      {clases.map((clase) => (
+                        <label
+                          key={clase.id_clase}
+                          className="flex items-start space-x-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={form.clasesSeleccionadas.includes(clase.id_clase)}
+                            onChange={() => toggleClase(clase.id_clase)}
+                            className="mt-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-900">
+                              {clase.nombre_clase}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {clase.competencia.nombre} - {clase.competencia.codigo}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              {new Date(clase.fecha_clase).toLocaleDateString('es-CO')} - {clase.hora_inicio} a {clase.hora_fin}
+                            </div>
+                            <div className="text-xs text-gray-400">
+                              Instructor: {clase.instructor?.nombre || 'N/A'} {clase.instructor?.apellido || ''}
+                            </div>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </Field>
             </div>
 

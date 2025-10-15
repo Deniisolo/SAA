@@ -194,3 +194,24 @@ export async function verificarConfiguracionEmail(): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Envía un correo de prueba para validar la configuración SMTP
+ */
+export async function enviarEmailPrueba(destinatario: string): Promise<{ ok: boolean; message: string }> {
+  try {
+    await transporter.verify();
+
+    const info = await transporter.sendMail({
+      from: `SAA <${process.env.SMTP_USER || 'noreply@saa.com'}>`,
+      to: destinatario,
+      subject: 'Prueba SMTP - SAA',
+      text: 'Este es un correo de prueba para verificar la configuración SMTP de SAA.',
+    });
+
+    return { ok: true, message: `Correo de prueba enviado: ${info.messageId}` };
+  } catch (error: any) {
+    console.error('Fallo al enviar correo de prueba:', error);
+    return { ok: false, message: error?.message || 'Error desconocido enviando correo de prueba' };
+  }
+}

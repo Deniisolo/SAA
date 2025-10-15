@@ -14,6 +14,25 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as htmlToImage from 'html-to-image'
 
+interface AsistenciaReal {
+  id_asistencia: number
+  fecha_asistencia: string
+  hora_registro: string | null
+  estado_asistencia: string
+  id_usuario: number
+  nombre: string
+  apellido: string
+  numero_documento: string
+  id_clase: number
+  nombre_clase: string
+  fecha_clase: string
+  hora_inicio: string
+  hora_fin: string
+  id_competencia: number
+  nombre_competencia: string
+  codigo_competencia: string
+}
+
 type Serie = { fecha: string; tardanzas: number; inasistencias: number }
 
 const FECHAS = [
@@ -47,10 +66,30 @@ function EstadisticasPageContent() {
   const [openList, setOpenList] = useState(false)
   const [seleccionado, setSeleccionado] = useState(APRENDICES[0])
   const [loading, setLoading] = useState(true)
+  const [asistenciasReales, setAsistenciasReales] = useState<AsistenciaReal[]>([])
+  const [loadingAsistencias, setLoadingAsistencias] = useState(true)
 
   // refs & handlers de descarga
   const chartCardRef = useRef<HTMLDivElement>(null)
   const dropRef = useRef<HTMLDivElement>(null)
+
+  // Función para obtener asistencias reales
+  const fetchAsistenciasReales = async () => {
+    try {
+      setLoadingAsistencias(true)
+      const response = await fetch('/api/asistencias-filtradas')
+      if (response.ok) {
+        const data = await response.json()
+        setAsistenciasReales(data.data || [])
+      } else {
+        console.error('Error al obtener asistencias:', response.status)
+      }
+    } catch (error) {
+      console.error('Error de conexión:', error)
+    } finally {
+      setLoadingAsistencias(false)
+    }
+  }
 
   // persistencia
   useEffect(() => {
@@ -63,6 +102,11 @@ function EstadisticasPageContent() {
     if (n) setSeleccionado(n)
     const t = setTimeout(() => setLoading(false), 350)
     return () => clearTimeout(t)
+  }, [])
+
+  // Cargar asistencias reales
+  useEffect(() => {
+    fetchAsistenciasReales()
   }, [])
   useEffect(() => {
     localStorage.setItem('estadisticas.vista', vista)
@@ -88,31 +132,95 @@ function EstadisticasPageContent() {
     return () => window.removeEventListener('mousedown', onClick)
   }, [openList])
 
-  // datos agregados
-  const serieGeneral: Serie[] = useMemo(
-    () => [
-      { fecha: FECHAS[0], tardanzas: 1, inasistencias: 6 },
-      { fecha: FECHAS[1], tardanzas: 5, inasistencias: 3 },
-      { fecha: FECHAS[2], tardanzas: 11, inasistencias: 2 },
-      { fecha: FECHAS[3], tardanzas: 5, inasistencias: 10 },
-      { fecha: FECHAS[4], tardanzas: 12, inasistencias: 13 },
-      { fecha: FECHAS[5], tardanzas: 13, inasistencias: 10 },
-    ],
-    []
-  )
+  // Obtener lista de aprendices únicos de las asistencias reales
+  const aprendicesReales = useMemo(() => {
+    const aprendicesMap = new Map()
+    asistenciasReales.forEach(asistencia => {
+      const key = `${asistencia.nombre} ${asistencia.apellido}`
+      if (!aprendicesMap.has(key)) {
+        aprendicesMap.set(key, {
+          nombre: key,
+          documento: asistencia.numero_documento
+        })
+      }
+    })
+    return Array.from(aprendicesMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre))
+  }, [asistenciasReales])
 
-  // datos por aprendiz
-  const seriePorAprendiz: Serie[] = useMemo(() => {
-    const seed = Math.abs(
-      [...seleccionado].reduce((a, c) => a + c.charCodeAt(0), 0)
+  // Procesar datos reales por fechas (vista general)
+  const serieGeneral: Serie[] = useMemo(() => {
+    if (asistenciasReales.length === 0) return []
+    
+    const fechasMap = new Map()
+    
+    asistenciasReales.forEach(asistencia => {
+      const fecha = new Date(asistencia.fecha_clase).toLocaleDateString('es-CO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
+      
+      if (!fechasMap.has(fecha)) {
+        fechasMap.set(fecha, {
+          fecha,
+          tardanzas: 0,
+          inasistencias: 0
+        })
+      }
+      
+      const datosFecha = fechasMap.get(fecha)
+      if (asistencia.estado_asistencia === 'tardanza') {
+        datosFecha.tardanzas++
+      } else if (asistencia.estado_asistencia === 'ausente') {
+        datosFecha.ausentes++
+      }
+    })
+
+    return Array.from(fechasMap.values()).sort((a, b) => 
+      new Date(a.fecha.split('/').reverse().join('-')).getTime() - 
+      new Date(b.fecha.split('/').reverse().join('-')).getTime()
     )
-    const rnd = (i: number) => ((seed * (i + 7)) % 7) // 0..6
-    return FECHAS.map((f, i) => ({
-      fecha: f,
-      tardanzas: rnd(i),
-      inasistencias: Math.max(0, rnd(i + 3) - 1),
-    }))
-  }, [seleccionado])
+  }, [asistenciasReales])
+
+  // Procesar datos reales por aprendiz específico
+  const seriePorAprendiz: Serie[] = useMemo(() => {
+    if (asistenciasReales.length === 0 || !seleccionado) return []
+    
+    // Filtrar asistencias del aprendiz seleccionado
+    const asistenciasAprendiz = asistenciasReales.filter(asistencia => 
+      `${asistencia.nombre} ${asistencia.apellido}` === seleccionado
+    )
+
+    const fechasMap = new Map()
+    
+    asistenciasAprendiz.forEach(asistencia => {
+      const fecha = new Date(asistencia.fecha_clase).toLocaleDateString('es-CO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
+      
+      if (!fechasMap.has(fecha)) {
+        fechasMap.set(fecha, {
+          fecha,
+          tardanzas: 0,
+          inasistencias: 0
+        })
+      }
+      
+      const datosFecha = fechasMap.get(fecha)
+      if (asistencia.estado_asistencia === 'tardanza') {
+        datosFecha.tardanzas++
+      } else if (asistencia.estado_asistencia === 'ausente') {
+        datosFecha.ausentes++
+      }
+    })
+
+    return Array.from(fechasMap.values()).sort((a, b) => 
+      new Date(a.fecha.split('/').reverse().join('-')).getTime() - 
+      new Date(b.fecha.split('/').reverse().join('-')).getTime()
+    )
+  }, [asistenciasReales, seleccionado])
 
   const data = vista === 'aprendiz' ? seriePorAprendiz : serieGeneral
 
@@ -125,19 +233,125 @@ function EstadisticasPageContent() {
   }
 
   const downloadXLSX = () => {
-    const rows = data.map(d => ({
-      fecha: d.fecha,
-      llegadas_tarde: d.tardanzas,
-      no_asistencia: d.inasistencias,
-    }))
-    const ws = XLSX.utils.json_to_sheet(rows)
+    const fechaActual = new Date().toLocaleDateString('es-CO')
+    const horaActual = new Date().toLocaleTimeString('es-CO')
+    
+    // Crear hoja de metadatos
+    const metadata = [
+      ['REPORTE DE ESTADÍSTICAS DE ASISTENCIA'],
+      [''],
+      ['INFORMACIÓN GENERAL'],
+      ['Fecha de generación:', fechaActual],
+      ['Hora de generación:', horaActual],
+      ['Tipo de vista:', vista === 'aprendiz' ? `Estadísticas de: ${seleccionado}` : 'Estadísticas Generales'],
+      ['Total de aprendices:', aprendicesReales.length],
+      ['Total de asistencias registradas:', asistenciasReales.length],
+      [''],
+      ['RESUMEN EJECUTIVO'],
+      ['Total de llegadas tarde:', data.reduce((sum, d) => sum + d.tardanzas, 0)],
+      ['Total de ausencias:', data.reduce((sum, d) => sum + d.inasistencias, 0)],
+      ['Total de incidencias:', data.reduce((sum, d) => sum + d.tardanzas + d.inasistencias, 0)],
+      [''],
+      ['DATOS DETALLADOS']
+    ]
+    
+    // Crear hoja de datos
+    const headers = ['Fecha', 'Llegadas Tarde', 'No Asistencia', 'Total Incidencias', 'Porcentaje Tardanzas', 'Porcentaje Ausencias']
+    const rows = data.map(d => {
+      const totalIncidencias = d.tardanzas + d.inasistencias
+      const porcentajeTardanzas = totalIncidencias > 0 ? ((d.tardanzas / totalIncidencias) * 100).toFixed(1) : '0.0'
+      const porcentajeAusencias = totalIncidencias > 0 ? ((d.inasistencias / totalIncidencias) * 100).toFixed(1) : '0.0'
+      
+      return [
+        d.fecha,
+        d.tardanzas,
+        d.inasistencias,
+        totalIncidencias,
+        `${porcentajeTardanzas}%`,
+        `${porcentajeAusencias}%`
+      ]
+    })
+    
+    // Agregar totales
+    const totalTardanzas = data.reduce((sum, d) => sum + d.tardanzas, 0)
+    const totalAusencias = data.reduce((sum, d) => sum + d.inasistencias, 0)
+    const totalIncidencias = totalTardanzas + totalAusencias
+    const totalPorcentajeTardanzas = totalIncidencias > 0 ? ((totalTardanzas / totalIncidencias) * 100).toFixed(1) : '0.0'
+    const totalPorcentajeAusencias = totalIncidencias > 0 ? ((totalAusencias / totalIncidencias) * 100).toFixed(1) : '0.0'
+    
+    rows.push(['TOTALES', totalTardanzas, totalAusencias, totalIncidencias, `${totalPorcentajeTardanzas}%`, `${totalPorcentajeAusencias}%`])
+    
+    // Crear workbook
     const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Estadísticas')
-    ws['!cols'] = [{ wch: 12 }, { wch: 16 }, { wch: 16 }]
-    XLSX.writeFile(
-      wb,
-      `estadisticas_${vista === 'aprendiz' ? 'aprendiz' : 'general'}.xlsx`
-    )
+    
+    // Hoja de metadatos
+    const wsMetadata = XLSX.utils.aoa_to_sheet(metadata)
+    XLSX.utils.book_append_sheet(wb, wsMetadata, 'Información')
+    
+    // Hoja de datos
+    const wsData = XLSX.utils.aoa_to_sheet([headers, ...rows])
+    wsData['!cols'] = [
+      { wch: 15 }, // Fecha
+      { wch: 18 }, // Llegadas Tarde
+      { wch: 18 }, // No Asistencia
+      { wch: 18 }, // Total Incidencias
+      { wch: 20 }, // Porcentaje Tardanzas
+      { wch: 20 }  // Porcentaje Ausencias
+    ]
+    
+    // Aplicar formato a la fila de totales
+    const totalRowIndex = rows.length
+    if (wsData[`A${totalRowIndex + 2}`]) {
+      wsData[`A${totalRowIndex + 2}`].s = { font: { bold: true } }
+      wsData[`B${totalRowIndex + 2}`].s = { font: { bold: true } }
+      wsData[`C${totalRowIndex + 2}`].s = { font: { bold: true } }
+      wsData[`D${totalRowIndex + 2}`].s = { font: { bold: true } }
+      wsData[`E${totalRowIndex + 2}`].s = { font: { bold: true } }
+      wsData[`F${totalRowIndex + 2}`].s = { font: { bold: true } }
+    }
+    
+    XLSX.utils.book_append_sheet(wb, wsData, 'Estadísticas')
+    
+    // Hoja de aprendices
+    const aprendicesHeaders = ['Nombre Completo', 'Número de Documento', 'Total Asistencias', 'Presentes', 'Tardanzas', 'Ausencias', 'Porcentaje Asistencia']
+    const aprendicesData = aprendicesReales.map(aprendiz => {
+      const asistenciasAprendiz = asistenciasReales.filter(a => 
+        `${a.nombre} ${a.apellido}` === aprendiz.nombre
+      )
+      const totalAsistencias = asistenciasAprendiz.length
+      const presentes = asistenciasAprendiz.filter(a => a.estado_asistencia === 'presente').length
+      const tardanzas = asistenciasAprendiz.filter(a => a.estado_asistencia === 'tardanza').length
+      const ausencias = asistenciasAprendiz.filter(a => a.estado_asistencia === 'ausente').length
+      const porcentajeAsistencia = totalAsistencias > 0 ? (((presentes + tardanzas) / totalAsistencias) * 100).toFixed(1) : '0.0'
+      
+      return [
+        aprendiz.nombre,
+        aprendiz.documento,
+        totalAsistencias,
+        presentes,
+        tardanzas,
+        ausencias,
+        `${porcentajeAsistencia}%`
+      ]
+    })
+    
+    const wsAprendices = XLSX.utils.aoa_to_sheet([aprendicesHeaders, ...aprendicesData])
+    wsAprendices['!cols'] = [
+      { wch: 30 }, // Nombre Completo
+      { wch: 18 }, // Número de Documento
+      { wch: 16 }, // Total Asistencias
+      { wch: 12 }, // Presentes
+      { wch: 12 }, // Tardanzas
+      { wch: 12 }, // Ausencias
+      { wch: 18 }  // Porcentaje Asistencia
+    ]
+    XLSX.utils.book_append_sheet(wb, wsAprendices, 'Aprendices')
+    
+    // Generar nombre de archivo con fecha
+    const fechaArchivo = new Date().toISOString().split('T')[0]
+    const nombreArchivo = `estadisticas_${vista === 'aprendiz' ? 'aprendiz' : 'general'}_${fechaArchivo}.xlsx`
+    
+    XLSX.writeFile(wb, nombreArchivo)
   }
 
   const downloadPDF = async () => {
@@ -145,14 +359,56 @@ function EstadisticasPageContent() {
     const marginX = 40
     let y = 56
 
+    // Título principal
     const titulo =
       vista === 'aprendiz'
         ? `Estadísticas de: ${seleccionado}`
         : 'Estadísticas de aprendices'
-    doc.setFontSize(16)
+    
+    doc.setFontSize(18)
+    doc.setFont('helvetica', 'bold')
+    doc.text('REPORTE DE ESTADÍSTICAS DE ASISTENCIA', marginX, y)
+    y += 24
+
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'normal')
     doc.text(titulo, marginX, y)
+    y += 20
+
+    // Información de generación
+    const fechaActual = new Date().toLocaleDateString('es-CO')
+    const horaActual = new Date().toLocaleTimeString('es-CO')
+    
+    doc.setFontSize(10)
+    doc.text(`Fecha de generación: ${fechaActual}`, marginX, y)
+    y += 12
+    doc.text(`Hora de generación: ${horaActual}`, marginX, y)
+    y += 20
+
+    // Resumen ejecutivo
+    const totalTardanzas = data.reduce((sum, d) => sum + d.tardanzas, 0)
+    const totalAusencias = data.reduce((sum, d) => sum + d.inasistencias, 0)
+    const totalIncidencias = totalTardanzas + totalAusencias
+
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('RESUMEN EJECUTIVO', marginX, y)
     y += 16
 
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(10)
+    doc.text(`Total de llegadas tarde: ${totalTardanzas}`, marginX, y)
+    y += 12
+    doc.text(`Total de ausencias: ${totalAusencias}`, marginX, y)
+    y += 12
+    doc.text(`Total de incidencias: ${totalIncidencias}`, marginX, y)
+    y += 12
+    doc.text(`Total de aprendices: ${aprendicesReales.length}`, marginX, y)
+    y += 12
+    doc.text(`Total de asistencias registradas: ${asistenciasReales.length}`, marginX, y)
+    y += 20
+
+    // Gráfico
     if (chartCardRef.current) {
       try {
         const dataUrl = await htmlToImage.toPng(chartCardRef.current, {
@@ -163,23 +419,133 @@ function EstadisticasPageContent() {
         const maxW = doc.internal.pageSize.getWidth() - marginX * 2
         const imgW = maxW
         const imgH = (imgW * 9) / 16
-        doc.addImage(dataUrl, 'PNG', marginX, y + 8, imgW, imgH)
+        doc.addImage(dataUrl, 'PNG', marginX, y, imgW, imgH)
         y += imgH + 24
       } catch {
         y += 10
       }
     }
 
-    autoTable(doc, {
-      startY: y,
-      head: [['Fecha', 'Llegadas tarde', 'No asistencia']],
-      body: data.map(d => [d.fecha, String(d.tardanzas), String(d.inasistencias)]),
-      styles: { fontSize: 10, cellPadding: 6 },
-      headStyles: { fillColor: [47, 124, 247] },
-      margin: { left: marginX, right: marginX },
+    // Tabla de datos detallados
+    const tableData = data.map(d => {
+      const totalIncidencias = d.tardanzas + d.inasistencias
+      const porcentajeTardanzas = totalIncidencias > 0 ? ((d.tardanzas / totalIncidencias) * 100).toFixed(1) : '0.0'
+      const porcentajeAusencias = totalIncidencias > 0 ? ((d.inasistencias / totalIncidencias) * 100).toFixed(1) : '0.0'
+      
+      return [
+        d.fecha,
+        String(d.tardanzas),
+        String(d.inasistencias),
+        String(totalIncidencias),
+        `${porcentajeTardanzas}%`,
+        `${porcentajeAusencias}%`
+      ]
     })
 
-    doc.save(`estadisticas_${vista === 'aprendiz' ? 'aprendiz' : 'general'}.pdf`)
+    // Agregar fila de totales
+    tableData.push([
+      'TOTALES',
+      String(totalTardanzas),
+      String(totalAusencias),
+      String(totalIncidencias),
+      totalIncidencias > 0 ? `${((totalTardanzas / totalIncidencias) * 100).toFixed(1)}%` : '0.0%',
+      totalIncidencias > 0 ? `${((totalAusencias / totalIncidencias) * 100).toFixed(1)}%` : '0.0%'
+    ])
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Fecha', 'Llegadas Tarde', 'No Asistencia', 'Total Incidencias', 'Porcentaje Tardanzas', 'Porcentaje Ausencias']],
+      body: tableData,
+      styles: { 
+        fontSize: 9, 
+        cellPadding: 4,
+        halign: 'center'
+      },
+      headStyles: { 
+        fillColor: [47, 124, 247],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      margin: { left: marginX, right: marginX },
+      didDrawPage: (data) => {
+        // Aplicar formato especial a la fila de totales
+        const lastRow = data.table.body.length - 1
+        if (lastRow >= 0) {
+          const cells = data.table.body[lastRow]
+          cells.forEach(cell => {
+            cell.styles.fontStyle = 'bold'
+            cell.styles.fillColor = [240, 240, 240]
+          })
+        }
+      }
+    })
+
+    // Agregar nueva página para tabla de aprendices
+    doc.addPage()
+    y = 56
+
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('RESUMEN POR APRENDIZ', marginX, y)
+    y += 20
+
+    // Tabla de aprendices
+    const aprendicesTableData = aprendicesReales.map(aprendiz => {
+      const asistenciasAprendiz = asistenciasReales.filter(a => 
+        `${a.nombre} ${a.apellido}` === aprendiz.nombre
+      )
+      const totalAsistencias = asistenciasAprendiz.length
+      const presentes = asistenciasAprendiz.filter(a => a.estado_asistencia === 'presente').length
+      const tardanzas = asistenciasAprendiz.filter(a => a.estado_asistencia === 'tardanza').length
+      const ausencias = asistenciasAprendiz.filter(a => a.estado_asistencia === 'ausente').length
+      const porcentajeAsistencia = totalAsistencias > 0 ? (((presentes + tardanzas) / totalAsistencias) * 100).toFixed(1) : '0.0'
+      
+      return [
+        aprendiz.nombre,
+        String(totalAsistencias),
+        String(presentes),
+        String(tardanzas),
+        String(ausencias),
+        `${porcentajeAsistencia}%`
+      ]
+    })
+
+    autoTable(doc, {
+      startY: y,
+      head: [['Aprendiz', 'Total', 'Presentes', 'Tardanzas', 'Ausencias', '% Asistencia']],
+      body: aprendicesTableData,
+      styles: { 
+        fontSize: 8, 
+        cellPadding: 3,
+        halign: 'center'
+      },
+      headStyles: { 
+        fillColor: [47, 124, 247],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [245, 245, 245]
+      },
+      margin: { left: marginX, right: marginX },
+      columnStyles: {
+        0: { halign: 'left', cellWidth: 80 }, // Aprendiz
+        1: { cellWidth: 20 }, // Total
+        2: { cellWidth: 20 }, // Presentes
+        3: { cellWidth: 20 }, // Tardanzas
+        4: { cellWidth: 20 }, // Ausencias
+        5: { cellWidth: 25 }  // % Asistencia
+      }
+    })
+
+    // Generar nombre de archivo con fecha
+    const fechaArchivo = new Date().toISOString().split('T')[0]
+    const nombreArchivo = `estadisticas_${vista === 'aprendiz' ? 'aprendiz' : 'general'}_${fechaArchivo}.pdf`
+
+    doc.save(nombreArchivo)
   }
 
 
@@ -213,23 +579,29 @@ function EstadisticasPageContent() {
                 role="listbox"
                 className="absolute z-20 mt-3 max-h-80 w-full max-w-xl overflow-auto rounded-xl border bg-white p-2 shadow-xl"
               >
-                {APRENDICES.map((n, idx) => (
-                  <button
-                    key={n}
-                    role="option"
-                    aria-selected={n === seleccionado}
-                    className={`w-full rounded-lg px-4 py-2 text-left hover:bg-gray-50 ${
-                      n === seleccionado ? 'font-semibold text-gray-900' : 'text-gray-700'
-                    }`}
-                    onClick={() => {
-                      setSeleccionado(n)
-                      setOpenList(false)
-                    }}
-                    tabIndex={0}
-                  >
-                    {idx + 1}. {n}
-                  </button>
-                ))}
+                {aprendicesReales.length > 0 ? (
+                  aprendicesReales.map((aprendiz, idx) => (
+                    <button
+                      key={aprendiz.nombre}
+                      role="option"
+                      aria-selected={aprendiz.nombre === seleccionado}
+                      className={`w-full rounded-lg px-4 py-2 text-left hover:bg-gray-50 ${
+                        aprendiz.nombre === seleccionado ? 'font-semibold text-gray-900' : 'text-gray-700'
+                      }`}
+                      onClick={() => {
+                        setSeleccionado(aprendiz.nombre)
+                        setOpenList(false)
+                      }}
+                      tabIndex={0}
+                    >
+                      {idx + 1}. {aprendiz.nombre}
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-2 text-gray-500 text-center">
+                    {loadingAsistencias ? 'Cargando aprendices...' : 'No hay aprendices registrados'}
+                  </div>
+                )}
               </div>
             )}
           </div>

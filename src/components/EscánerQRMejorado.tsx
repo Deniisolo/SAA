@@ -94,7 +94,8 @@ export default function EscánerQRMejorado({ claseSeleccionada, onAsistenciaRegi
     if (isProcessing || !claseSeleccionada) return
 
     setIsProcessing(true)
-    console.log('Procesando código QR:', qrCode)
+    console.log('🔍 Procesando código QR:', qrCode)
+    console.log('📋 Clase seleccionada:', claseSeleccionada)
 
     try {
       console.log('📤 Enviando solicitud a:', '/api/asistencias')
@@ -122,8 +123,9 @@ export default function EscánerQRMejorado({ claseSeleccionada, onAsistenciaRegi
       })
 
       let data
+      let responseText = ''
       try {
-        const responseText = await response.text()
+        responseText = await response.text()
         console.log('📡 Response Text (raw):', responseText)
         
         if (responseText.trim() === '') {
@@ -138,14 +140,27 @@ export default function EscánerQRMejorado({ claseSeleccionada, onAsistenciaRegi
         console.error('❌ Error al parsear JSON:', jsonError)
         console.log('📡 Response status:', response.status)
         console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()))
-        mostrarNotificacion('error', '❌ Error al procesar respuesta del servidor')
-        return
+        console.log('📡 Response text que causó el error:', responseText)
+        
+        // Si no es JSON válido pero hay texto, usar el texto como mensaje de error
+        if (responseText.trim() !== '') {
+          data = { error: responseText }
+        } else {
+          mostrarNotificacion('error', '❌ Error al procesar respuesta del servidor')
+          return
+        }
       }
 
       if (response.ok) {
         // Validar que los datos estén presentes
         if (!data || !data.data || !data.data.usuario) {
-          console.error('Datos incompletos en la respuesta:', data)
+          console.error('❌ Datos incompletos en la respuesta:', {
+            data: data,
+            hasData: !!data,
+            hasDataData: !!(data && data.data),
+            hasUsuario: !!(data && data.data && data.data.usuario),
+            responseStatus: response.status
+          })
           mostrarNotificacion('error', '❌ Datos incompletos en la respuesta del servidor')
           return
         }
@@ -165,23 +180,41 @@ export default function EscánerQRMejorado({ claseSeleccionada, onAsistenciaRegi
         console.log('✅ Asistencia registrada:', nuevaAsistencia)
         mostrarNotificacion('success', `✅ ${nuevaAsistencia.nombre} ${nuevaAsistencia.apellido} - ${nuevaAsistencia.estado.toUpperCase()}`)
       } else {
-        console.error('Error al registrar asistencia:', data)
+        console.error('Error al registrar asistencia:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: data,
+          responseText: responseText || 'No se pudo leer el texto de respuesta'
+        })
         
         // Manejar casos donde data esté vacío o no tenga la estructura esperada
         let errorMessage = 'Error desconocido'
         
-        if (data && typeof data === 'object') {
+        // Verificar si data existe y tiene contenido
+        if (data && typeof data === 'object' && Object.keys(data).length > 0) {
           errorMessage = data.error || data.message || 'Error desconocido'
-        } else if (response.status === 400) {
-          errorMessage = 'Error en la solicitud (código 400)'
-        } else if (response.status === 404) {
-          errorMessage = 'Usuario o clase no encontrados'
-        } else if (response.status === 500) {
-          errorMessage = 'Error interno del servidor'
+        } else if (data && typeof data === 'string' && data.trim() !== '') {
+          errorMessage = data
+        } else {
+          // Si data está vacío, usar el código de estado HTTP para determinar el error
+          switch (response.status) {
+            case 400:
+              errorMessage = 'Error en la solicitud - verifica los datos enviados'
+              break
+            case 404:
+              errorMessage = 'Usuario o clase no encontrados'
+              break
+            case 500:
+              errorMessage = 'Error interno del servidor'
+              break
+            default:
+              errorMessage = `Error del servidor (código ${response.status})`
+          }
         }
         
         // Mostrar mensaje más amigable para asistencias duplicadas
-        if (errorMessage.includes('Ya se registró la asistencia')) {
+        if (errorMessage.includes('Ya se registró la asistencia') || 
+            errorMessage.includes('asistencia para este usuario en esta clase')) {
           console.log('ℹ️ Asistencia ya registrada - esto es normal')
           mostrarNotificacion('info', 'ℹ️ Esta asistencia ya fue registrada anteriormente')
         } else {

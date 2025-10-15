@@ -15,6 +15,14 @@ interface ClaseItem {
   hora_fin: string
   id_competencia: number
   nombre_competencia: string
+  competencia: {
+    nombre: string
+    codigo: string
+  }
+  instructor: {
+    nombre: string
+    apellido: string
+  }
 }
 
 interface Asistencia {
@@ -49,7 +57,8 @@ export default function HomePage() {
   // Cargar clases disponibles
   const cargarClases = async () => {
     try {
-      const response = await fetch('/api/clases-disponibles')
+      // Usar el endpoint /api/clases que no requiere instructorId
+      const response = await fetch('/api/clases')
       const data = await response.json()
       
       if (response.ok) {
@@ -79,10 +88,11 @@ export default function HomePage() {
       const response = await fetch(`/api/asistencias-filtradas?${params.toString()}`)
       const data = await response.json()
       
-      if (response.ok) {
+      if (data.success) {
         setAsistencias(data.data || [])
+        setError(null) // Limpiar error explícitamente
       } else {
-        setError('Error al cargar las asistencias')
+        setError(data.error || 'Error al cargar las asistencias')
       }
     } catch {
       setError('Error de conexión al cargar asistencias')
@@ -229,19 +239,6 @@ export default function HomePage() {
             </h3>
           </div>
           
-          {error && (
-            <div className="p-6">
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <p className="text-red-800">{error}</p>
-                <button
-                  onClick={cargarAsistencias}
-                  className="mt-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
-                >
-                  Reintentar
-                </button>
-              </div>
-            </div>
-          )}
           
           {loading ? (
             <div className="p-6 text-center">

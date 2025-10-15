@@ -250,18 +250,34 @@ export default function EstadisticasAprendices({ asistencias }: EstadisticasApre
           d.tardanzas,
           d.ausentes,
           totalIncidenciasFecha,
-          `${porcentajeTardanzas}%)`,
-          `${porcentajeAusencias}%)`
+          `${porcentajeTardanzas}%`,
+          `${porcentajeAusencias}%`
         ]
       }),
       [''],
       ['TOTALES'],
       ['', totalTardanzas, totalAusentes, totalIncidencias, 
-       totalIncidencias > 0 ? `${((totalTardanzas / totalIncidencias) * 100).toFixed(1)}%)` : '0.0%',
-       totalIncidencias > 0 ? `${((totalAusentes / totalIncidencias) * 100).toFixed(1)}%)` : '0.0%']
-    ].map(row => row.join(',')).join('\n')
+       totalIncidencias > 0 ? `${((totalTardanzas / totalIncidencias) * 100).toFixed(1)}%` : '0.0%',
+       totalIncidencias > 0 ? `${((totalAusentes / totalIncidencias) * 100).toFixed(1)}%` : '0.0%']
+    ]
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    // Función para escapar valores CSV
+    const escapeCSV = (value: any) => {
+      if (value === null || value === undefined) return ''
+      const str = String(value)
+      if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+        return `"${str.replace(/"/g, '""')}"`
+      }
+      return str
+    }
+
+    const csvContentFormatted = csvContent.map(row => 
+      row.map(cell => escapeCSV(cell)).join(',')
+    ).join('\n')
+
+    // Agregar BOM para UTF-8 para compatibilidad con Excel
+    const BOM = '\uFEFF'
+    const blob = new Blob([BOM + csvContentFormatted], { type: 'text/csv;charset=utf-8;' })
     const link = document.createElement('a')
     const url = URL.createObjectURL(blob)
     link.setAttribute('href', url)

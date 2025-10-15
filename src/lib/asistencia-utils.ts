@@ -40,10 +40,12 @@ export function determinarEstadoAsistencia(
   
   if (diferenciaMinutos <= 0) {
     return 'presente'; // Llegó a tiempo o antes
-  } else if (diferenciaMinutos <= toleranciaMinutos) {
-    return 'tardanza'; // Llegó dentro de los 15 minutos de tolerancia (amarillo)
+  } else if (diferenciaMinutos < toleranciaMinutos) {
+    return 'presente'; // Llegó dentro de los primeros 15 minutos = PRESENTE (zona de tolerancia)
+  } else if (diferenciaMinutos <= toleranciaMinutos * 2) {
+    return 'tardanza'; // Llegó entre 15-30 minutos tarde = TARDANZA (amarillo)
   } else {
-    return 'ausente'; // Llegó muy tarde, después de la tolerancia (rojo)
+    return 'ausente'; // Llegó más de 30 minutos tarde = AUSENTE (rojo)
   }
 }
 

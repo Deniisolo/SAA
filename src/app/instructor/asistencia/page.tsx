@@ -27,10 +27,26 @@ interface Asistencia {
 interface Clase {
   id_clase: number
   nombre_clase: string
+  descripcion: string | null
+  fecha_clase: string
   hora_inicio: string
   hora_fin: string
+  id_competencia: number
+  id_instructor: number
+  nombre_competencia: string
+  codigo_competencia: string
+  instructor_nombre: string
+  instructor_apellido: string
   competencia: {
-    nombre_competencia: string
+    nombre: string
+    codigo: string
+  }
+  instructor: {
+    nombre: string
+    apellido: string
+  }
+  _count: {
+    asistencias: number
   }
 }
 
@@ -225,7 +241,7 @@ function GestionAsistenciaContent() {
                   }`}
                 >
                   <h3 className="font-medium text-gray-900 mb-1">{clase.nombre_clase}</h3>
-                  <p className="text-sm text-gray-600 mb-1">{clase.competencia.nombre_competencia}</p>
+                  <p className="text-sm text-gray-600 mb-1">{clase.competencia.nombre}</p>
                   <p className="text-sm text-gray-500">
                     🕐 {clase.hora_inicio} - {clase.hora_fin}
                   </p>
@@ -252,7 +268,7 @@ function GestionAsistenciaContent() {
               </div>
               <div className="p-3 bg-green-50 rounded-lg">
                 <label className="block text-sm font-medium text-green-700">🎯 Competencia</label>
-                <p className="mt-1 text-sm text-green-900 font-medium">{claseActual.competencia.nombre_competencia}</p>
+                <p className="mt-1 text-sm text-green-900 font-medium">{claseActual.competencia.nombre}</p>
               </div>
               <div className="p-3 bg-purple-50 rounded-lg">
                 <label className="block text-sm font-medium text-purple-700">🕐 Horario</label>
@@ -269,7 +285,11 @@ function GestionAsistenciaContent() {
           <div className="mb-6">
             {console.log('📱 Renderizando escáner QR para clase:', claseSeleccionada)}
             <EscánerQRMejorado
-              claseSeleccionada={clases.find(c => c.id_clase === claseSeleccionada) || null}
+              claseSeleccionada={clases.find(c => c.id_clase === claseSeleccionada) ? {
+                id_clase: clases.find(c => c.id_clase === claseSeleccionada)!.id_clase,
+                nombre_clase: clases.find(c => c.id_clase === claseSeleccionada)!.nombre_clase,
+                hora_inicio: clases.find(c => c.id_clase === claseSeleccionada)!.hora_inicio
+              } : null}
               onAsistenciaRegistrada={handleAsistenciaRegistrada}
             />
           </div>
